@@ -94,13 +94,16 @@ export default function LessonsPage() {
     const { data: { publicUrl } } = supabase.storage.from('lessons').getPublicUrl(fileName)
 
     // 3. Insert into DB
+    const { data: { user } } = await supabase.auth.getUser()
+    
     const { error: dbError } = await supabase.from('lessons').insert([{
       title: uploadData.title,
       subject_id: uploadData.subject_id,
       grade_level: uploadData.grade_level,
       file_url: publicUrl,
       file_type: fileExt,
-      status: 'pending' // Tình trạng sau khi upload là "chờ phê duyệt"
+      status: 'pending', // Tình trạng sau khi upload là "chờ phê duyệt"
+      teacher_id: user?.id || null 
     }])
 
     setIsUploading(false)
