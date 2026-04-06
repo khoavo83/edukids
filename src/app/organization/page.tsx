@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-const GRADE_LEVELS = ['Nhà trẻ', 'Lớp Mầm', 'Lớp Chồi', 'Lớp Lá']
+const GRADE_LEVELS = ['Khối Nhà trẻ', 'Khối Mầm', 'Khối Chồi', 'Khối Lá']
 
 export default function OrganizationPage() {
   const supabase = createClient()
@@ -24,7 +24,7 @@ export default function OrganizationPage() {
   // CREATE States & Dialogs
   const [isClassDialogOpen, setIsClassDialogOpen] = useState(false)
   const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false)
-  const [newClass, setNewClass] = useState({ name: '', grade_level: 'Lớp Mầm', teacher_id: '' })
+  const [newClass, setNewClass] = useState({ name: '', grade_level: 'Khối Mầm', teacher_id: '' })
   const [newSubject, setNewSubject] = useState({ title: '', description: '', icon: 'BookOpen' })
 
   // EDIT States & Dialogs
@@ -62,7 +62,7 @@ export default function OrganizationPage() {
     if (!error && data) {
       setClasses([...classes, data[0]])
       setIsClassDialogOpen(false)
-      setNewClass({ name: '', grade_level: 'Lớp Mầm', teacher_id: '' })
+      setNewClass({ name: '', grade_level: 'Khối Mầm', teacher_id: '' })
     } else alert('Lỗi: ' + error?.message)
   }
 
@@ -191,7 +191,7 @@ export default function OrganizationPage() {
                         <Input placeholder="Ví dụ: Lớp Mầm 1" value={newClass.name} onChange={e => setNewClass({...newClass, name: e.target.value})} />
                       </div>
                       <div className="space-y-2">
-                        <Label>Nhóm khối (Level)</Label>
+                        <Label>Nhóm khối</Label>
                         <select className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm" value={newClass.grade_level} onChange={e => setNewClass({...newClass, grade_level: e.target.value})}>
                           {GRADE_LEVELS.map(g => <option key={g} value={g}>{g}</option>)}
                         </select>
@@ -219,7 +219,7 @@ export default function OrganizationPage() {
                     
                     return (
                       <div key={level} className="space-y-4">
-                        <h2 className="text-xl font-black text-gray-800 border-b-2 border-primary/20 pb-2 inline-block px-1">🏫 Khối {level}</h2>
+                        <h2 className="text-xl font-black text-gray-800 border-b-2 border-primary/20 pb-2 inline-block px-1">🏫 {level}</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                           {levelClasses.map(c => (
                             <div key={c.id} className="glass-card rounded-3xl p-6 group transition-all duration-200 border-t-4 border-t-primary hover:shadow-xl hover:shadow-primary/10 bg-white/70">
@@ -259,7 +259,7 @@ export default function OrganizationPage() {
                         <Input value={editingClass.name} onChange={e => setEditingClass({...editingClass, name: e.target.value})} />
                       </div>
                       <div className="space-y-2">
-                        <Label>Nhóm khối (Level)</Label>
+                        <Label>Nhóm khối</Label>
                         <select className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm" value={editingClass.grade_level} onChange={e => setEditingClass({...editingClass, grade_level: e.target.value})}>
                           {GRADE_LEVELS.map(g => <option key={g} value={g}>{g}</option>)}
                         </select>
