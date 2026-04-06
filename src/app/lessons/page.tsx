@@ -50,19 +50,25 @@ export default function LessonsPage() {
     if (data) setSubjects(data)
   }
 
-  const handleUpload = async () => {
-    if (!uploadData.file || !uploadData.subject_id || !uploadData.grade_level) return
+  const [isUploading, setIsUploading] = useState(false)
 
-    // 1. Upload to Storage (Giả định đã tạo bucket 'lessons')
+  const handleUpload = async () => {
+    if (!uploadData.file || !uploadData.subject_id || !uploadData.grade_level) {
+      return alert("Vui lòng nhập đủ Tiêu đề, chọn Môn, Khối và File đính kèm!")
+    }
+    setIsUploading(true)
+
+    // 1. Upload to Storage
     const fileExt = uploadData.file.name.split('.').pop()
-    const fileName = `${Math.random()}.${fileExt}`
+    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
     const { data: storageData, error: storageError } = await supabase.storage
       .from('lessons')
       .upload(fileName, uploadData.file)
 
     if (storageError) {
+      setIsUploading(false)
       console.error(storageError)
-      return
+      return alert('Lỗi tải tệp lên máy chủ: ' + storageError.message + '\n(Có thể Supabase chưa tạo ổ lưu trữ "lessons")')
     }
 
     // 2. Save public URL
@@ -75,12 +81,17 @@ export default function LessonsPage() {
       grade_level: uploadData.grade_level,
       file_url: publicUrl,
       file_type: fileExt,
-      status: 'pending'
+      status: 'pending' // Tình trạng sau khi upload là "chờ phê duyệt"
     }])
 
+    setIsUploading(false)
     if (!dbError) {
       setIsUploadOpen(false)
+      setUploadData({ title: '', subject_id: '', grade_level: '', file: null })
+      alert("Tải bài giảng cấp tốc thành công! Vui lòng chờ Ban giám hiệu phê duyệt.")
       fetchLessons()
+    } else {
+      alert("Tải lên DB thất bại: " + dbError.message)
     }
   }
 
@@ -153,8 +164,8 @@ export default function LessonsPage() {
                 </div>
               </div>
 
-              <Button onClick={handleUpload} className="w-full rounded-xl" disabled={!uploadData.file}>
-                Bắt đầu tải lên
+              <Button onClick={handleUpload} className="w-full rounded-xl" disabled={!uploadData.file || isUploading}>
+                {isUploading ? 'Đang xử lý, vui lòng chờ...' : 'Bắt đầu tải lên'}
               </Button>
             </div>
           </DialogContent>
