@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
 import LessonCard from '@/components/lessons/LessonCard'
 import LessonDetail from '@/components/lessons/LessonDetail'
+import TeacherStats from '@/components/dashboard/TeacherStats'
 import { Search, Filter, Edit, Trash2, MoreVertical } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -139,6 +140,9 @@ export default function HomePage() {
           </div>
         </div>
       </header>
+
+      {/* Bảng Xếp Hạng Đóng Góp Của Giáo Viên */}
+      <TeacherStats lessons={lessons} />
 
       {/* Bộ lọc đa tầng (Multi-level Filter) */}
       <div className="flex flex-col md:flex-row gap-4 mb-10">
