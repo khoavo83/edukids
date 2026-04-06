@@ -135,12 +135,25 @@ export default function LessonsPage() {
   const handleDelete = async (lessonId: string) => {
     if (!confirm('Bạn có chắc chắn muốn xóa bài giảng này vĩnh viễn?')) return;
     setLoading(true)
+    
+    // Tìm bài giảng để lấy file_url và xóa file trên Storage
+    const lessonToDelete = lessons.find((l: any) => l.id === lessonId)
+    if (lessonToDelete?.file_url) {
+      // Lấy tên file từ URL
+      const urlParts = lessonToDelete.file_url.split('/')
+      const fileName = urlParts[urlParts.length - 1]
+      if (fileName) {
+        await supabase.storage.from('lessons').remove([fileName])
+      }
+    }
+    
     const { error } = await supabase.from('lessons').delete().eq('id', lessonId);
     if (!error) {
-       fetchLessons();
+       await fetchLessons();
     } else {
        alert('Lỗi khi xóa: ' + error.message);
     }
+    setLoading(false)
   }
 
   const handleUpdateStatus = async (lessonId: string, status: string) => {
@@ -365,14 +378,14 @@ export default function LessonsPage() {
         ) : (
           filteredLessons.map((lesson) => (
             <div key={lesson.id} className="relative group hover:-translate-y-1 transition-transform">
-              {/* Badge status nổi bật */}
-              <div className={`absolute top-3 right-3 z-30 px-3 py-1.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1 shadow-lg border-2 border-white
+              {/* Badge status tiếng Việt - đặt dưới chân ảnh */}
+              <div className={`absolute bottom-[calc(100%-12rem+8px)] left-3 z-30 px-3 py-1.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1 shadow-lg border-2 border-white
                   ${lesson.status === 'approved' ? 'bg-green-500 text-white' : 
                     lesson.status === 'pending' ? 'bg-orange-500 text-white' : 'bg-red-500 text-white'}`}>
                   {lesson.status === 'approved' && <CheckCircle size={12} />}
                   {lesson.status === 'pending' && <Clock size={12} />}
                   {lesson.status === 'rejected' && <XCircle size={12} />}
-                  {lesson.status}
+                  {lesson.status === 'approved' ? 'Đã duyệt' : lesson.status === 'pending' ? 'Chờ duyệt' : 'Từ chối'}
               </div>
 
               {/* Nút tác vụ (Admin) */}

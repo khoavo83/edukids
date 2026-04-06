@@ -68,16 +68,16 @@ export default function LessonCard({ lesson, onClick }: LessonCardProps) {
         </h3>
         
         <div className="flex items-center justify-between border-t border-gray-50 pt-4 mt-4 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black tracking-tighter overflow-hidden ring-2 ring-white shadow-sm">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black tracking-tighter overflow-hidden ring-2 ring-white shadow-sm shrink-0">
                {lesson.profiles?.avatar_url ? (
                  <img src={lesson.profiles.avatar_url} className="w-full h-full object-cover" alt="avatar" />
                ) : (
                  getInitials(lesson.profiles?.full_name || 'Admin')
                )}
             </div>
-            <div>
-               <p className="text-[11px] font-bold text-gray-700 line-clamp-1 max-w-[100px]">
+            <div className="min-w-0">
+               <p className="text-[11px] font-bold text-gray-700 truncate">
                  {lesson.profiles?.full_name || 'Quản trị viên'}
                </p>
                <p className="text-[9px] font-semibold text-gray-400">
@@ -86,7 +86,7 @@ export default function LessonCard({ lesson, onClick }: LessonCardProps) {
             </div>
           </div>
           
-          <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 bg-gray-50 rounded-md text-gray-500">
+          <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 bg-gray-50 rounded-md text-gray-500 shrink-0 ml-2">
             {lesson.grade_level}
           </span>
         </div>
