@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 const GRADE_LEVELS = ['Khối Nhà trẻ', 'Khối Mầm', 'Khối Chồi', 'Khối Lá']
+const ACADEMIC_YEARS = ['2023-2024', '2024-2025', '2025-2026', '2026-2027', '2027-2028', '2028-2029']
 
 export default function OrganizationPage() {
   const supabase = createClient()
@@ -20,11 +21,12 @@ export default function OrganizationPage() {
   const [subjects, setSubjects] = useState<any[]>([])
   const [profiles, setProfiles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedYear, setSelectedYear] = useState('2024-2025')
 
   // CREATE States & Dialogs
   const [isClassDialogOpen, setIsClassDialogOpen] = useState(false)
   const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false)
-  const [newClass, setNewClass] = useState({ name: '', grade_level: 'Khối Mầm', teacher_id: '' })
+  const [newClass, setNewClass] = useState({ name: '', grade_level: 'Khối Mầm', academic_year: '2024-2025', teacher_id: '', teacher_2_id: '', nanny_id: '' })
   const [newSubject, setNewSubject] = useState({ title: '', description: '', icon: 'BookOpen' })
 
   // EDIT States & Dialogs
@@ -48,7 +50,7 @@ export default function OrganizationPage() {
     const { data: profileData } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
     if (profileData) setProfiles(profileData)
 
-    const { data: classData } = await supabase.from('classes').select('*, profiles:teacher_id(full_name)').order('grade_level', { ascending: true })
+    const { data: classData } = await supabase.from('classes').select('*').order('grade_level', { ascending: true })
     if (classData) setClasses(classData)
 
     setLoading(false)
@@ -57,19 +59,33 @@ export default function OrganizationPage() {
   // --- HANDLERS LỚP HỌC ---
   const handleAddClass = async () => {
     if (!newClass.name) return alert('Tên lớp không được để trống')
-    const payload = { name: newClass.name, grade_level: newClass.grade_level, teacher_id: newClass.teacher_id || null }
-    const { data, error } = await supabase.from('classes').insert([payload]).select('*, profiles:teacher_id(full_name)')
+    const payload = { 
+      name: newClass.name, 
+      grade_level: newClass.grade_level, 
+      academic_year: newClass.academic_year,
+      teacher_id: newClass.teacher_id || null,
+      teacher_2_id: newClass.teacher_2_id || null,
+      nanny_id: newClass.nanny_id || null
+    }
+    const { data, error } = await supabase.from('classes').insert([payload]).select('*')
     if (!error && data) {
       setClasses([...classes, data[0]])
       setIsClassDialogOpen(false)
-      setNewClass({ name: '', grade_level: 'Khối Mầm', teacher_id: '' })
+      setNewClass({ name: '', grade_level: 'Khối Mầm', academic_year: '2024-2025', teacher_id: '', teacher_2_id: '', nanny_id: '' })
     } else alert('Lỗi: ' + error?.message)
   }
 
   const handleUpdateClass = async () => {
     if (!editingClass.name) return alert('Tên lớp không được mở trống')
-    const payload = { name: editingClass.name, grade_level: editingClass.grade_level, teacher_id: editingClass.teacher_id || null }
-    const { data, error } = await supabase.from('classes').update(payload).eq('id', editingClass.id).select('*, profiles:teacher_id(full_name)')
+    const payload = { 
+      name: editingClass.name, 
+      grade_level: editingClass.grade_level, 
+      academic_year: editingClass.academic_year || '2024-2025',
+      teacher_id: editingClass.teacher_id || null,
+      teacher_2_id: editingClass.teacher_2_id || null,
+      nanny_id: editingClass.nanny_id || null
+    }
+    const { data, error } = await supabase.from('classes').update(payload).eq('id', editingClass.id).select('*')
     
     if (!error && data) {
       setClasses(classes.map(c => c.id === editingClass.id ? data[0] : c))
@@ -151,7 +167,7 @@ export default function OrganizationPage() {
           onClick={() => setActiveTab('classes')}
           className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 ${activeTab === 'classes' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
         >
-          <Layout size={18} /> Danh sách Lớp
+          <Layout size={18} /> Năm học & Phân công
         </button>
         <button 
           onClick={() => setActiveTab('subjects')}
@@ -174,71 +190,127 @@ export default function OrganizationPage() {
           {/* TAB 1: DANH SÁCH LỚP HỌC */}
           {activeTab === 'classes' && (
             <div>
-              <div className="flex justify-end mb-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div className="flex items-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+                  <span className="text-sm font-bold text-gray-500 pl-3">Chọn Năm Học:</span>
+                  <select 
+                    className="h-10 px-4 rounded-xl border-none outline-none bg-primary/5 text-primary font-bold cursor-pointer"
+                    value={selectedYear}
+                    onChange={e => setSelectedYear(e.target.value)}
+                  >
+                    {ACADEMIC_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+
                 <Dialog open={isClassDialogOpen} onOpenChange={setIsClassDialogOpen}>
                   <DialogTrigger asChild>
                     <Button className="rounded-xl gap-2 font-semibold shadow-lg shadow-primary/20">
                       <Plus size={20} /> Tạo lớp học mới
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="rounded-3xl glass-card">
+                  <DialogContent className="rounded-3xl glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>Mở lớp học mới</DialogTitle>
+                      <DialogTitle>Mở lớp học & Phân công mới (Năm {selectedYear})</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
+                    <div className="space-y-5 py-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Thuộc Năm Học</Label>
+                          <select className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm font-bold text-primary" value={newClass.academic_year} onChange={e => setNewClass({...newClass, academic_year: e.target.value})}>
+                            {ACADEMIC_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Nhóm khối</Label>
+                          <select className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm" value={newClass.grade_level} onChange={e => setNewClass({...newClass, grade_level: e.target.value})}>
+                            {GRADE_LEVELS.map(g => <option key={g} value={g}>{g}</option>)}
+                          </select>
+                        </div>
+                      </div>
                       <div className="space-y-2">
-                        <Label>Tên lớp</Label>
+                        <Label>Tên lớp hiển thị</Label>
                         <Input placeholder="Ví dụ: Lớp Mầm 1" value={newClass.name} onChange={e => setNewClass({...newClass, name: e.target.value})} />
                       </div>
-                      <div className="space-y-2">
-                        <Label>Nhóm khối</Label>
-                        <select className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm" value={newClass.grade_level} onChange={e => setNewClass({...newClass, grade_level: e.target.value})}>
-                          {GRADE_LEVELS.map(g => <option key={g} value={g}>{g}</option>)}
-                        </select>
+                      
+                      <div className="border-t border-b border-gray-100 py-4 space-y-4">
+                        <div className="space-y-2">
+                          <Label className="text-blue-600 font-bold">Cô Giáo 1 (Giáo viên Chủ nhiệm)</Label>
+                          <select className="w-full h-10 px-3 rounded-md border border-input bg-blue-50/50 text-sm" value={newClass.teacher_id} onChange={e => setNewClass({...newClass, teacher_id: e.target.value})}>
+                            <option value="">-- Chọn Giáo Viên --</option>
+                            {getTeachersList().map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-blue-600 font-bold">Cô Giáo 2</Label>
+                          <select className="w-full h-10 px-3 rounded-md border border-input bg-blue-50/50 text-sm" value={newClass.teacher_2_id} onChange={e => setNewClass({...newClass, teacher_2_id: e.target.value})}>
+                            <option value="">-- Chọn Giáo Viên --</option>
+                            {getTeachersList().map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-fuchsia-600 font-bold">Nhân viên Nuôi dưỡng (Bảo mẫu)</Label>
+                          <select className="w-full h-10 px-3 rounded-md border border-input bg-fuchsia-50/50 text-sm" value={newClass.nanny_id} onChange={e => setNewClass({...newClass, nanny_id: e.target.value})}>
+                            <option value="">-- Chọn Cô Bảo Mẫu --</option>
+                            {getTeachersList().map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+                          </select>
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Giáo viên đứng lớp (Tuỳ chọn)</Label>
-                        <select className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm" value={newClass.teacher_id} onChange={e => setNewClass({...newClass, teacher_id: e.target.value})}>
-                          <option value="">-- Chưa phân công --</option>
-                          {getTeachersList().map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
-                        </select>
-                      </div>
-                      <Button onClick={handleAddClass} className="w-full rounded-xl">Lưu danh sách</Button>
+                      <Button onClick={handleAddClass} className="w-full rounded-xl h-11 text-base">Lưu thiết lập nhóm Lớp</Button>
                     </div>
                   </DialogContent>
                 </Dialog>
               </div>
 
               <div className="space-y-10">
-                {classes.length === 0 ? (
-                  <div className="glass-card rounded-3xl p-10 text-center text-gray-500">Chưa thiết lập Lớp học nào.</div>
+                {classes.filter(c => c.academic_year === selectedYear).length === 0 ? (
+                  <div className="glass-card rounded-3xl p-10 text-center text-gray-500">
+                    <p className="font-bold mb-2">Chưa thiết lập Lớp học nào cho năm {selectedYear}.</p>
+                    <p className="text-sm">Bạn có thể Tạo lớp học mới để bắt đầu năm học nhé!</p>
+                  </div>
                 ) : (
                   <>
                     {GRADE_LEVELS.map(level => {
-                      const levelClasses = classes.filter(c => c.grade_level === level)
+                      const levelClasses = classes.filter(c => c.grade_level === level && c.academic_year === selectedYear)
                       if (levelClasses.length === 0) return null
                       
                       return (
                         <div key={level} className="space-y-4">
-                          <h2 className="text-xl font-black text-gray-800 border-b-2 border-primary/20 pb-2 inline-block px-1">🏫 {level}</h2>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          <h2 className="text-xl font-black text-gray-800 border-b-2 border-primary/20 pb-2 inline-block px-1">🏫 {level} <span className="text-sm text-gray-400 font-medium">({levelClasses.length} lớp)</span></h2>
+                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                             {levelClasses.map(c => (
-                              <div key={c.id} className="glass-card rounded-3xl p-6 group transition-all duration-200 border-t-4 border-t-primary hover:shadow-xl hover:shadow-primary/10 bg-white/70">
+                              <div key={c.id} className="glass-card rounded-3xl p-5 group transition-all duration-200 border-t-4 border-t-primary hover:shadow-xl hover:shadow-primary/10 bg-white/70">
                                 <div className="flex justify-between items-start mb-2">
-                                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{c.grade_level}</span>
+                                  <span className="text-xs font-bold px-2 py-1 bg-primary/10 text-primary rounded-md uppercase tracking-widest">{c.grade_level}</span>
                                   <div className="flex gap-2">
-                                    <button onClick={() => { setEditingClass(c); setEditClassDialog(true); }} className="text-gray-300 hover:text-blue-500 transition-colors">
-                                      <Edit2 size={16} />
+                                    <button onClick={() => { setEditingClass(c); setEditClassDialog(true); }} className="text-gray-300 hover:text-blue-500 transition-colors bg-white shadow-sm p-1.5 rounded-md">
+                                      <Edit2 size={14} />
                                     </button>
-                                    <button onClick={() => handleDeleteClass(c.id)} className="text-gray-300 hover:text-red-500 transition-colors">
-                                      <Trash2 size={16} />
+                                    <button onClick={() => handleDeleteClass(c.id)} className="text-gray-300 hover:text-red-500 transition-colors bg-white shadow-sm p-1.5 rounded-md">
+                                      <Trash2 size={14} />
                                     </button>
                                   </div>
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-900 mb-4">{c.name}</h3>
-                                <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl">
-                                  <Users size={16} className="text-primary" />
-                                  <span className="text-sm text-gray-600 font-medium">Giáo viên: {c.profiles?.full_name || 'Chưa phân công'}</span>
+                                <h3 className="text-2xl font-bold text-gray-900 mb-4">{c.name}</h3>
+                                
+                                <div className="space-y-2 bg-gray-50/80 p-3 rounded-2xl">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">V1</div>
+                                    <div className="flex-1 text-sm border-b border-gray-100 pb-1">
+                                      <p className="font-semibold text-gray-800">{getTeachersList().find(t => t.id === c.teacher_id)?.full_name || <span className="text-gray-400 italic">Chưa xếp Cô 1</span>}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">V2</div>
+                                    <div className="flex-1 text-sm border-b border-gray-100 pb-1">
+                                      <p className="font-semibold text-gray-800">{getTeachersList().find(t => t.id === c.teacher_2_id)?.full_name || <span className="text-gray-400 italic">Chưa xếp Cô 2</span>}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-fuchsia-100 flex items-center justify-center text-fuchsia-600 font-bold text-xs">BM</div>
+                                    <div className="flex-1 text-sm pb-1">
+                                      <p className="font-semibold text-gray-800">{getTeachersList().find(t => t.id === c.nanny_id)?.full_name || <span className="text-gray-400 italic">Chưa xếp Bảo mẫu</span>}</p>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             ))}
@@ -246,64 +318,90 @@ export default function OrganizationPage() {
                         </div>
                       )
                     })}
-
-                    {/* DỮ LIỆU CŨ LỆCH CHUẨN */}
-                    {classes.filter(c => !GRADE_LEVELS.includes(c.grade_level)).length > 0 && (
-                      <div className="space-y-4 mt-12 p-6 bg-red-50/50 rounded-3xl border border-red-100 border-dashed">
-                        <h2 className="text-xl font-black text-red-600 pb-2 inline-block px-1">⚠️ Dữ liệu cũ (Cần cập nhật danh mục)</h2>
-                        <p className="text-sm text-gray-500 mb-4">Các lớp này được lưu bằng chuẩn phân loại cũ, vui lòng bấm Sửa và chọn lại nhóm Khối mới.</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {classes.filter(c => !GRADE_LEVELS.includes(c.grade_level)).map(c => (
-                            <div key={c.id} className="glass-card rounded-3xl p-6 group transition-all duration-200 border-t-4 border-t-red-400 hover:shadow-xl hover:shadow-red-500/10 bg-white/70">
-                              <div className="flex justify-between items-start mb-2">
-                                <span className="text-xs font-bold text-red-400 uppercase tracking-widest">{c.grade_level}</span>
-                                <div className="flex gap-2">
-                                  <button onClick={() => { setEditingClass(c); setEditClassDialog(true); }} className="text-gray-300 hover:text-blue-500 transition-colors">
-                                    <Edit2 size={16} />
-                                  </button>
-                                  <button onClick={() => handleDeleteClass(c.id)} className="text-gray-300 hover:text-red-500 transition-colors">
-                                    <Trash2 size={16} />
-                                  </button>
-                                </div>
-                              </div>
-                              <h3 className="text-xl font-bold text-gray-900 mb-4">{c.name}</h3>
-                              <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl">
-                                <Users size={16} className="text-primary" />
-                                <span className="text-sm text-gray-600 font-medium">Giáo viên: {c.profiles?.full_name || 'Chưa phân'}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </>
+                )}
+
+                {/* DỮ LIỆU CŨ LỆCH CHUẨN */}
+                {classes.filter(c => !GRADE_LEVELS.includes(c.grade_level) || !c.academic_year).length > 0 && (
+                  <div className="space-y-4 mt-12 p-6 bg-red-50/50 rounded-3xl border border-red-100 border-dashed">
+                    <h2 className="text-xl font-black text-red-600 pb-2 inline-block px-1">⚠️ Dữ liệu năm học cũ / Lệch danh mục</h2>
+                    <p className="text-sm text-gray-500 mb-4">Các lớp này chưa được nạp Năm Học, vui lòng bấm sửa thông tin Lớp để chuyển về Nhóm phù hợp.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {classes.filter(c => !GRADE_LEVELS.includes(c.grade_level) || !c.academic_year).map(c => (
+                        <div key={c.id} className="glass-card rounded-3xl p-5 group transition-all duration-200 border-t-4 border-t-red-400 hover:shadow-xl hover:shadow-red-500/10 bg-white/70">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-xs font-bold text-red-400 uppercase tracking-widest">{c.grade_level}</span>
+                            <div className="flex gap-2">
+                              <button onClick={() => { setEditingClass(c); setEditClassDialog(true); }} className="text-gray-300 hover:text-blue-500 transition-colors">
+                                <Edit2 size={16} />
+                              </button>
+                              <button onClick={() => handleDeleteClass(c.id)} className="text-gray-300 hover:text-red-500 transition-colors">
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                          <h3 className="text-xl font-bold text-gray-900 mb-4">{c.name}</h3>
+                          <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl">
+                            <Users size={16} className="text-primary" />
+                            <span className="text-sm text-gray-600 font-medium">{getTeachersList().find(t => t.id === c.teacher_id)?.full_name || 'Chưa định danh'}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
 
               {/* Modal Edit Class */}
               <Dialog open={editClassDialog} onOpenChange={setEditClassDialog}>
-                <DialogContent className="rounded-3xl glass-card">
+                <DialogContent className="rounded-3xl glass-card sm:max-w-md max-h-[90vh] overflow-y-auto">
                   <DialogHeader><DialogTitle>Cập nhật thông tin Lớp</DialogTitle></DialogHeader>
                   {editingClass && (
                     <div className="space-y-4 py-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Thuộc Năm Học</Label>
+                          <select className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm font-bold text-primary" value={editingClass.academic_year || '2024-2025'} onChange={e => setEditingClass({...editingClass, academic_year: e.target.value})}>
+                            {ACADEMIC_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Nhóm khối</Label>
+                          <select className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm" value={editingClass.grade_level} onChange={e => setEditingClass({...editingClass, grade_level: e.target.value})}>
+                            <option value="">Lệch chuẩn...</option>
+                            {GRADE_LEVELS.map(g => <option key={g} value={g}>{g}</option>)}
+                          </select>
+                        </div>
+                      </div>
                       <div className="space-y-2">
                         <Label>Tên lớp</Label>
                         <Input value={editingClass.name} onChange={e => setEditingClass({...editingClass, name: e.target.value})} />
                       </div>
-                      <div className="space-y-2">
-                        <Label>Nhóm khối</Label>
-                        <select className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm" value={editingClass.grade_level} onChange={e => setEditingClass({...editingClass, grade_level: e.target.value})}>
-                          {GRADE_LEVELS.map(g => <option key={g} value={g}>{g}</option>)}
-                        </select>
+                      
+                      <div className="border-t border-b border-gray-100 py-4 space-y-4">
+                        <div className="space-y-2">
+                          <Label className="text-blue-600 font-bold">Cô Giáo 1 (GVCN)</Label>
+                          <select className="w-full h-10 px-3 rounded-md border border-input bg-blue-50/50 text-sm" value={editingClass.teacher_id || ''} onChange={e => setEditingClass({...editingClass, teacher_id: e.target.value})}>
+                            <option value="">-- Chưa phân công --</option>
+                            {getTeachersList().map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-blue-600 font-bold">Cô Giáo 2</Label>
+                          <select className="w-full h-10 px-3 rounded-md border border-input bg-blue-50/50 text-sm" value={editingClass.teacher_2_id || ''} onChange={e => setEditingClass({...editingClass, teacher_2_id: e.target.value})}>
+                            <option value="">-- Chưa phân công --</option>
+                            {getTeachersList().map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-fuchsia-600 font-bold">Nhân viên Nuôi dưỡng (Bảo mẫu)</Label>
+                          <select className="w-full h-10 px-3 rounded-md border border-input bg-fuchsia-50/50 text-sm" value={editingClass.nanny_id || ''} onChange={e => setEditingClass({...editingClass, nanny_id: e.target.value})}>
+                            <option value="">-- Chưa theo dõi --</option>
+                            {getTeachersList().map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+                          </select>
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Giáo viên đứng lớp</Label>
-                        <select className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm" value={editingClass.teacher_id || ''} onChange={e => setEditingClass({...editingClass, teacher_id: e.target.value})}>
-                          <option value="">-- Chưa phân công --</option>
-                          {getTeachersList().map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
-                        </select>
-                      </div>
-                      <Button onClick={handleUpdateClass} className="w-full rounded-xl gap-2"><Save size={16}/> Lưu thay đổi</Button>
+                      <Button onClick={handleUpdateClass} className="w-full rounded-xl gap-2 h-11"><Save size={16}/> Lưu thay đổi</Button>
                     </div>
                   )}
                 </DialogContent>
