@@ -61,10 +61,26 @@ export default function LessonsPage() {
   useEffect(() => {
     fetchLessons()
     fetchSubjects()
+
+    // Realtime listener cho bảng 'lessons'
+    const channel = supabase
+      .channel('lessons-page-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'lessons' },
+        () => {
+          fetchLessons(true) // Silent reload: cập nhật dữ liệu ngầm
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
-  const fetchLessons = async () => {
-    setLoading(true)
+  const fetchLessons = async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
     const { data, error } = await supabase
       .from('lessons')
       .select('*, subjects(title), profiles(full_name, avatar_url)')
@@ -76,7 +92,7 @@ export default function LessonsPage() {
       const uniqueTeachers = Array.from(new Set(data.filter((l: any) => l.profiles).map((l: any) => l.profiles.full_name))) as string[]
       setTeachers(uniqueTeachers)
     }
-    setLoading(false)
+    if (!isSilent) setLoading(false)
   }
 
   const fetchSubjects = async () => {

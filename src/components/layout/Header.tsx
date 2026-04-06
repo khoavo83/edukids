@@ -47,6 +47,7 @@ export default function Header() {
   const [userName, setUserName] = useState('Người dùng')
   const [userRole, setUserRole] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
+  const [activeToast, setActiveToast] = useState<any>(null)
   const supabase = createClient()
   const router = useRouter()
 
@@ -107,6 +108,10 @@ export default function Header() {
           const newNotif = payload.new
           setNotifications(prev => [newNotif, ...prev])
           setUnreadCount(prev => prev + 1)
+          
+          // Hiển thị Toast
+          setActiveToast(newNotif)
+          setTimeout(() => setActiveToast(null), 5000) // Tự tắt sau 5s
         }
       )
       .subscribe()
@@ -257,6 +262,35 @@ export default function Header() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* === TOAST NOTIFICATION (POPUP) === */}
+      {activeToast && (
+        <div 
+          className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300 cursor-pointer"
+          onClick={() => handleNotifClick(activeToast)}
+        >
+          <div className="bg-white/90 backdrop-blur-xl border border-primary/20 shadow-2xl shadow-primary/10 rounded-2xl p-4 flex items-center gap-4 min-w-[320px] max-w-md">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+              activeToast.type === 'new_lesson' ? 'bg-blue-50/50 text-blue-500' :
+              activeToast.type === 'approved' ? 'bg-green-50/50 text-green-500' :
+              activeToast.type === 'rejected' ? 'bg-red-50/50 text-red-500' : 'bg-gray-50/50 text-gray-500'
+            }`}>
+              <NotifIcon type={activeToast.type} />
+            </div>
+            <div className="flex-1 pr-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">Thông báo mới</div>
+              <p className="text-sm font-bold text-gray-900 leading-tight mb-0.5 line-clamp-1">{activeToast.title}</p>
+              <p className="text-xs text-gray-500 line-clamp-2">{activeToast.message}</p>
+            </div>
+            <button 
+              onClick={(e) => { e.stopPropagation(); setActiveToast(null) }}
+              className="text-gray-400 hover:text-gray-600 p-1"
+            >
+              <CheckCircle size={16} />
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   )
 }

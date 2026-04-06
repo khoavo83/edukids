@@ -32,10 +32,26 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchData()
+
+    // Realtime listener
+    const channel = supabase
+      .channel('dashboard-lessons-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'lessons' },
+        () => {
+          fetchData(true) // Silent reload không nháy màn hình
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
-  const fetchData = async () => {
-    setLoading(true)
+  const fetchData = async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
     const { data: subjectsData } = await supabase.from('subjects').select('*')
     if (subjectsData) setSubjects(subjectsData)
 
@@ -56,7 +72,7 @@ export default function HomePage() {
     
     if (error) console.error(error)
     if (lessonsData) setLessons(lessonsData)
-    setLoading(false)
+    if (!isSilent) setLoading(false)
   }
 
   // --- HÀNH ĐỘNG CỦA GIÁO VIÊN (Chỉ sửa/xóa bài pending/rejected) ---
