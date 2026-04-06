@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
-import { Plus, Edit2, Archive, Trash2, MoreVertical, BookOpen, Users, GraduationCap, Layout } from 'lucide-react'
+import { Plus, Edit2, Archive, Trash2, MoreVertical, BookOpen, Users, GraduationCap, Layout, Save, X } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -21,13 +21,20 @@ export default function OrganizationPage() {
   const [profiles, setProfiles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Dialog States
+  // CREATE States & Dialogs
   const [isClassDialogOpen, setIsClassDialogOpen] = useState(false)
   const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false)
-
-  // Form States
   const [newClass, setNewClass] = useState({ name: '', grade_level: 'Lớp Mầm', teacher_id: '' })
   const [newSubject, setNewSubject] = useState({ title: '', description: '', icon: 'BookOpen' })
+
+  // EDIT States & Dialogs
+  const [editClassDialog, setEditClassDialog] = useState(false)
+  const [editSubjectDialog, setEditSubjectDialog] = useState(false)
+  const [editProfileDialog, setEditProfileDialog] = useState(false)
+  
+  const [editingClass, setEditingClass] = useState<any>(null)
+  const [editingSubject, setEditingSubject] = useState<any>(null)
+  const [editingProfile, setEditingProfile] = useState<any>(null)
 
   useEffect(() => {
     fetchData()
@@ -35,15 +42,12 @@ export default function OrganizationPage() {
 
   const fetchData = async () => {
     setLoading(true)
-    // Lấy môn học
     const { data: subjectData } = await supabase.from('subjects').select('*').order('created_at', { ascending: false })
     if (subjectData) setSubjects(subjectData)
 
-    // Lấy hồ sơ (tất cả người dùng để dễ thăng cấp)
     const { data: profileData } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
     if (profileData) setProfiles(profileData)
 
-    // Lấy lớp học (join với hồ sơ để lấy tên GVCN)
     const { data: classData } = await supabase.from('classes').select('*, profiles:teacher_id(full_name)').order('grade_level', { ascending: true })
     if (classData) setClasses(classData)
 
@@ -53,24 +57,28 @@ export default function OrganizationPage() {
   // --- HANDLERS LỚP HỌC ---
   const handleAddClass = async () => {
     if (!newClass.name) return alert('Tên lớp không được để trống')
-    const payload = {
-      name: newClass.name,
-      grade_level: newClass.grade_level,
-      teacher_id: newClass.teacher_id || null
-    }
-
+    const payload = { name: newClass.name, grade_level: newClass.grade_level, teacher_id: newClass.teacher_id || null }
     const { data, error } = await supabase.from('classes').insert([payload]).select('*, profiles:teacher_id(full_name)')
     if (!error && data) {
       setClasses([...classes, data[0]])
       setIsClassDialogOpen(false)
       setNewClass({ name: '', grade_level: 'Lớp Mầm', teacher_id: '' })
-    } else {
-      alert('Lỗi: ' + error?.message)
-    }
+    } else alert('Lỗi: ' + error?.message)
+  }
+
+  const handleUpdateClass = async () => {
+    if (!editingClass.name) return alert('Tên lớp không được mở trống')
+    const payload = { name: editingClass.name, grade_level: editingClass.grade_level, teacher_id: editingClass.teacher_id || null }
+    const { data, error } = await supabase.from('classes').update(payload).eq('id', editingClass.id).select('*, profiles:teacher_id(full_name)')
+    
+    if (!error && data) {
+      setClasses(classes.map(c => c.id === editingClass.id ? data[0] : c))
+      setEditClassDialog(false)
+    } else alert('Lỗi: ' + error?.message)
   }
 
   const handleDeleteClass = async (id: string) => {
-    if(!confirm('Bạn có chắc chắn muốn xoá lớp này?')) return
+    if(!confirm('Bạn có chắc chắn muốn xoá lớp này? Mọi dữ liệu liên quan có thể bị ảnh hưởng.')) return
     const { error } = await supabase.from('classes').delete().eq('id', id)
     if (!error) setClasses(classes.filter(c => c.id !== id))
   }
@@ -83,9 +91,18 @@ export default function OrganizationPage() {
       setSubjects([data[0], ...subjects])
       setIsSubjectDialogOpen(false)
       setNewSubject({ title: '', description: '', icon: 'BookOpen' })
-    } else {
-      alert('Lỗi: ' + error?.message)
-    }
+    } else alert('Lỗi: ' + error?.message)
+  }
+
+  const handleUpdateSubject = async () => {
+    if (!editingSubject.title) return alert('Tên môn không được trống')
+    const payload = { title: editingSubject.title, description: editingSubject.description }
+    const { data, error } = await supabase.from('subjects').update(payload).eq('id', editingSubject.id).select()
+    
+    if (!error && data) {
+      setSubjects(subjects.map(s => s.id === editingSubject.id ? data[0] : s))
+      setEditSubjectDialog(false)
+    } else alert('Lỗi: ' + error?.message)
   }
 
   const handleDeleteSubject = async (id: string) => {
@@ -94,13 +111,29 @@ export default function OrganizationPage() {
     if (!error) setSubjects(subjects.filter(s => s.id !== id))
   }
 
-  // --- HANDLERS GIÁO VIÊN ---
+  // --- HANDLERS USER/GIÁO VIÊN ---
   const handleToggleRole = async (profileId: string, currentRole: string) => {
-    const newRole = currentRole === 'teacher' ? 'parent' : 'teacher' // Đảo ngược giữa phụ huynh và giáo viên
+    const newRole = currentRole === 'teacher' ? 'parent' : 'teacher' 
     const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', profileId)
     if (!error) {
       setProfiles(profiles.map(p => p.id === profileId ? { ...p, role: newRole } : p))
     }
+  }
+
+  const handleUpdateProfile = async () => {
+    if (!editingProfile.full_name) return alert('Tên không được lể trống')
+    const { error } = await supabase.from('profiles').update({ full_name: editingProfile.full_name }).eq('id', editingProfile.id)
+    if (!error) {
+      setProfiles(profiles.map(p => p.id === editingProfile.id ? { ...p, full_name: editingProfile.full_name } : p))
+      setEditProfileDialog(false)
+    } else alert('Lỗi cập nhật tên: ' + error.message)
+  }
+
+  const handleDeleteProfile = async (id: string) => {
+    if(!confirm('Cảnh báo nguy hiểm: Xoá tài khoản này sẽ xoá luôn các bình luận và dữ liệu liên quan. Vẫn xoá?')) return
+    const { error } = await supabase.from('profiles').delete().eq('id', id)
+    if (!error) setProfiles(profiles.filter(p => p.id !== id))
+    else alert('Không thể xoá hồ sơ: Không đủ quyền Auth RLS hoặc vướng khoá ngoại.')
   }
 
   const getTeachersList = () => profiles.filter(p => p.role === 'teacher' || p.role === 'admin')
@@ -159,21 +192,13 @@ export default function OrganizationPage() {
                       </div>
                       <div className="space-y-2">
                         <Label>Nhóm khối (Level)</Label>
-                        <select 
-                          className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm"
-                          value={newClass.grade_level} 
-                          onChange={e => setNewClass({...newClass, grade_level: e.target.value})}
-                        >
+                        <select className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm" value={newClass.grade_level} onChange={e => setNewClass({...newClass, grade_level: e.target.value})}>
                           {GRADE_LEVELS.map(g => <option key={g} value={g}>{g}</option>)}
                         </select>
                       </div>
                       <div className="space-y-2">
                         <Label>Giáo viên đứng lớp (Tuỳ chọn)</Label>
-                        <select 
-                          className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm"
-                          value={newClass.teacher_id} 
-                          onChange={e => setNewClass({...newClass, teacher_id: e.target.value})}
-                        >
+                        <select className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm" value={newClass.teacher_id} onChange={e => setNewClass({...newClass, teacher_id: e.target.value})}>
                           <option value="">-- Chưa phân công --</option>
                           {getTeachersList().map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
                         </select>
@@ -192,9 +217,14 @@ export default function OrganizationPage() {
                     <div key={c.id} className="glass-card rounded-3xl p-6 group transition-all duration-200 border-t-4 border-t-primary">
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{c.grade_level}</span>
-                        <button onClick={() => handleDeleteClass(c.id)} className="text-gray-300 hover:text-red-500 transition-colors">
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="flex gap-2">
+                          <button onClick={() => { setEditingClass(c); setEditClassDialog(true); }} className="text-gray-300 hover:text-blue-500 transition-colors">
+                            <Edit2 size={16} />
+                          </button>
+                          <button onClick={() => handleDeleteClass(c.id)} className="text-gray-300 hover:text-red-500 transition-colors">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                       <h3 className="text-xl font-bold text-gray-900 mb-4">{c.name}</h3>
                       <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl">
@@ -205,6 +235,35 @@ export default function OrganizationPage() {
                   ))
                 )}
               </div>
+
+              {/* Modal Edit Class */}
+              <Dialog open={editClassDialog} onOpenChange={setEditClassDialog}>
+                <DialogContent className="rounded-3xl glass-card">
+                  <DialogHeader><DialogTitle>Cập nhật thông tin Lớp</DialogTitle></DialogHeader>
+                  {editingClass && (
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Tên lớp</Label>
+                        <Input value={editingClass.name} onChange={e => setEditingClass({...editingClass, name: e.target.value})} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Nhóm khối (Level)</Label>
+                        <select className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm" value={editingClass.grade_level} onChange={e => setEditingClass({...editingClass, grade_level: e.target.value})}>
+                          {GRADE_LEVELS.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Giáo viên đứng lớp</Label>
+                        <select className="w-full h-10 px-3 rounded-md border border-input bg-transparent text-sm" value={editingClass.teacher_id || ''} onChange={e => setEditingClass({...editingClass, teacher_id: e.target.value})}>
+                          <option value="">-- Chưa phân công --</option>
+                          {getTeachersList().map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+                        </select>
+                      </div>
+                      <Button onClick={handleUpdateClass} className="w-full rounded-xl gap-2"><Save size={16}/> Lưu thay đổi</Button>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
             </div>
           )}
 
@@ -247,9 +306,14 @@ export default function OrganizationPage() {
                         <div className="w-12 h-12 bg-secondary/10 text-secondary rounded-2xl flex items-center justify-center">
                           <BookOpen size={24} />
                         </div>
-                        <button onClick={() => handleDeleteSubject(s.id)} className="text-gray-300 hover:text-red-500 transition-colors">
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="flex gap-2">
+                          <button onClick={() => { setEditingSubject(s); setEditSubjectDialog(true); }} className="text-gray-300 hover:text-blue-500 transition-colors">
+                            <Edit2 size={16} />
+                          </button>
+                          <button onClick={() => handleDeleteSubject(s.id)} className="text-gray-300 hover:text-red-500 transition-colors">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                       <h3 className="text-lg font-bold text-gray-900">{s.title}</h3>
                       <p className="text-sm text-gray-500 mt-1">{s.description || 'Không mô tả'}</p>
@@ -257,10 +321,30 @@ export default function OrganizationPage() {
                   ))
                 )}
               </div>
+
+              {/* Modal Edit Subject */}
+              <Dialog open={editSubjectDialog} onOpenChange={setEditSubjectDialog}>
+                <DialogContent className="rounded-3xl glass-card">
+                  <DialogHeader><DialogTitle>Cập nhật Lĩnh vực chuyên môn</DialogTitle></DialogHeader>
+                  {editingSubject && (
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Tên bộ môn</Label>
+                        <Input value={editingSubject.title} onChange={e => setEditingSubject({...editingSubject, title: e.target.value})} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Mô tả ngắn</Label>
+                        <Input value={editingSubject.description || ''} onChange={e => setEditingSubject({...editingSubject, description: e.target.value})} />
+                      </div>
+                      <Button onClick={handleUpdateSubject} className="w-full rounded-xl bg-secondary hover:bg-secondary/90 gap-2"><Save size={16}/> Cập nhật</Button>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
             </div>
           )}
 
-          {/* TAB 3: CẤP QUYỀN GIÁO VIÊN */}
+          {/* TAB 3: NGƯỜI DÙNG & TÀI KHOẢN */}
           {activeTab === 'teachers' && (
             <div className="glass-card rounded-3xl overflow-hidden">
               <div className="p-6 border-b border-gray-100 bg-white/50">
@@ -275,7 +359,12 @@ export default function OrganizationPage() {
                         {p.full_name?.charAt(0) || 'U'}
                       </div>
                       <div>
-                        <h4 className="font-bold text-gray-900">{p.full_name}</h4>
+                        <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                          {p.full_name}
+                          <button onClick={() => { setEditingProfile(p); setEditProfileDialog(true); }} className="text-gray-300 hover:text-blue-500">
+                            <Edit2 size={14} />
+                          </button>
+                        </h4>
                         <div className="flex items-center gap-2 mt-1">
                           <span className={`text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-md ${
                             p.role === 'admin' ? 'bg-red-100 text-red-600' : 
@@ -287,18 +376,43 @@ export default function OrganizationPage() {
                       </div>
                     </div>
                     
-                    {p.role !== 'admin' && (
-                      <Button 
-                        variant={p.role === 'teacher' ? 'outline' : 'default'}
-                        className={`rounded-xl gap-2 font-bold ${p.role === 'teacher' ? 'border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600' : 'shadow-md shadow-primary/20'}`}
-                        onClick={() => handleToggleRole(p.id, p.role)}
-                      >
-                        {p.role === 'teacher' ? 'Huỷ cấp Giáo viên' : 'Phân làm Giáo viên'}
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {p.role !== 'admin' && (
+                        <>
+                          <Button 
+                            variant={p.role === 'teacher' ? 'outline' : 'default'}
+                            size="sm"
+                            className={`rounded-xl gap-2 font-bold ${p.role === 'teacher' ? 'border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600' : 'shadow-md shadow-primary/20'}`}
+                            onClick={() => handleToggleRole(p.id, p.role)}
+                          >
+                            {p.role === 'teacher' ? 'Huỷ cấp Giáo viên' : 'Phân làm Giáo viên'}
+                          </Button>
+                          <button onClick={() => handleDeleteProfile(p.id)} className="w-9 h-9 flex items-center justify-center bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors">
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
+
+              {/* Modal Edit Profile */}
+              <Dialog open={editProfileDialog} onOpenChange={setEditProfileDialog}>
+                <DialogContent className="rounded-3xl glass-card">
+                  <DialogHeader><DialogTitle>Chỉnh sửa Hồ sơ Thành viên</DialogTitle></DialogHeader>
+                  {editingProfile && (
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Tên hiển thị (Tên đầy đủ)</Label>
+                        <Input value={editingProfile.full_name} onChange={e => setEditingProfile({...editingProfile, full_name: e.target.value})} />
+                        <p className="text-xs text-gray-400 mt-1">Admin có thể thay đổi họ tên của thành viên cho chính xác.</p>
+                      </div>
+                      <Button onClick={handleUpdateProfile} className="w-full rounded-xl gap-2"><Save size={16}/> Lưu thay đổi</Button>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
             </div>
           )}
         </>
