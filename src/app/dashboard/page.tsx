@@ -2,19 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
-import { Search, Filter, Play, FileText, ImageIcon, Clock } from 'lucide-react'
-import { createClient } from '@/utils/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select'
-import LessonDetail from '@/components/lessons/LessonDetail'
 import LessonCard from '@/components/lessons/LessonCard'
+import LessonDetail from '@/components/lessons/LessonDetail'
+import { Search, Filter, Edit, Trash2, MoreVertical } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { createClient } from '@/utils/supabase/client'
 
 const gradeLevels = ['Tất cả', 'Nhà trẻ', 'Mầm', 'Chồi', 'Lá']
 
@@ -59,6 +56,50 @@ export default function HomePage() {
     if (error) console.error(error)
     if (lessonsData) setLessons(lessonsData)
     setLoading(false)
+  }
+
+  // --- HÀNH ĐỘNG CỦA GIÁO VIÊN (Chỉ sửa/xóa bài pending/rejected) ---
+  const handleDelete = async (lessonId: string) => {
+    if (!confirm('Bạn có chắc chắn muốn hủy bài giảng này?')) return;
+    setLoading(true)
+    const { error } = await supabase.from('lessons').delete().eq('id', lessonId);
+    if (!error) {
+       fetchData();
+    } else {
+       alert('Lỗi: ' + error.message);
+    }
+    setLoading(false)
+  }
+
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editLessonData, setEditLessonData] = useState<any>(null)
+  
+  const handleOpenEdit = (lesson: any) => {
+    setEditLessonData({
+      id: lesson.id,
+      title: lesson.title,
+      subject_id: lesson.subject_id,
+      grade_level: lesson.grade_level
+    })
+    setIsEditOpen(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editLessonData.title || !editLessonData.subject_id) return alert('Thiếu thông tin');
+    setLoading(true)
+    const { error } = await supabase.from('lessons').update({
+      title: editLessonData.title,
+      subject_id: editLessonData.subject_id,
+      grade_level: editLessonData.grade_level,
+      status: 'pending' // Chuyển status lại thành chờ duyệt nếu vừa bị từ chối
+    }).eq('id', editLessonData.id);
+    
+    if (!error) {
+      setIsEditOpen(false)
+      fetchData()
+    } else {
+      alert('Lỗi: ' + error.message)
+    }
   }
 
   // Logic lọc dữ liệu phía Client (Quick filter)
@@ -148,8 +189,29 @@ export default function HomePage() {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 opacity-90">
                   {filteredLessons.filter(l => l.status === 'rejected').map(lesson => (
-                    <div key={lesson.id} className="relative transition-transform hover:-translate-y-1">
+                    <div key={lesson.id} className="relative transition-transform hover:-translate-y-1 group">
                       <div className="absolute top-4 left-4 z-10 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-lg shadow-lg uppercase tracking-wider">Từ chối</div>
+                      
+                      {/* Menu tác vụ của tác giả */}
+                      <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-white/90 hover:bg-white shadow border border-gray-100">
+                              <MoreVertical size={16} className="text-gray-700" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40 rounded-2xl glass-card">
+                            <DropdownMenuItem className="font-semibold cursor-pointer rounded-xl h-10" onClick={() => handleOpenEdit(lesson)}>
+                              <Edit className="mr-2 h-4 w-4 text-blue-500" /> Sửa bài
+                            </DropdownMenuItem>
+                            <div className="h-px bg-gray-100 my-1" />
+                            <DropdownMenuItem className="font-semibold text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer rounded-xl h-10" onClick={() => handleDelete(lesson.id)}>
+                              <Trash2 className="mr-2 h-4 w-4" /> Nghỉ tải / Xóa
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
                       <LessonCard lesson={lesson} onClick={() => { setSelectedLesson(lesson); setIsDetailOpen(true) }} />
                     </div>
                   ))}
@@ -168,8 +230,29 @@ export default function HomePage() {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 opacity-90">
                   {filteredLessons.filter(l => l.status === 'pending').map(lesson => (
-                    <div key={lesson.id} className="relative transition-transform hover:-translate-y-1">
+                    <div key={lesson.id} className="relative transition-transform hover:-translate-y-1 group">
                       <div className="absolute top-4 left-4 z-10 bg-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-lg shadow-lg uppercase tracking-wider">Chờ duyệt</div>
+                      
+                      {/* Menu tác vụ của tác giả */}
+                      <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-white/90 hover:bg-white shadow border border-gray-100">
+                              <MoreVertical size={16} className="text-gray-700" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40 rounded-2xl glass-card">
+                            <DropdownMenuItem className="font-semibold cursor-pointer rounded-xl h-10" onClick={() => handleOpenEdit(lesson)}>
+                              <Edit className="mr-2 h-4 w-4 text-blue-500" /> Sửa bài
+                            </DropdownMenuItem>
+                            <div className="h-px bg-gray-100 my-1" />
+                            <DropdownMenuItem className="font-semibold text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer rounded-xl h-10" onClick={() => handleDelete(lesson.id)}>
+                              <Trash2 className="mr-2 h-4 w-4" /> Hủy bài
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
                       <LessonCard lesson={lesson} onClick={() => { setSelectedLesson(lesson); setIsDetailOpen(true) }} />
                     </div>
                   ))}
@@ -204,6 +287,55 @@ export default function HomePage() {
         isOpen={isDetailOpen} 
         onClose={() => setIsDetailOpen(false)} 
       />
+
+      {/* Modal Sửa bài giảng của Tác giả */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="rounded-3xl glass-card sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sửa thông tin Bài giảng</DialogTitle>
+          </DialogHeader>
+          {editLessonData && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Tiêu đề bài học</Label>
+                <Input 
+                  value={editLessonData.title}
+                  onChange={(e) => setEditLessonData({...editLessonData, title: e.target.value})}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Bộ môn</Label>
+                  <Select value={editLessonData.subject_id} onValueChange={(val) => setEditLessonData({...editLessonData, subject_id: val})}>
+                    <SelectTrigger className="rounded-xl">
+                      <SelectValue placeholder="Chọn môn" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjects.map(s => <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Khối lớp</Label>
+                  <Select value={editLessonData.grade_level} onValueChange={(val) => setEditLessonData({...editLessonData, grade_level: val})}>
+                    <SelectTrigger className="rounded-xl">
+                      <SelectValue placeholder="Chọn khối" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {gradeLevels.filter(g => g !== 'Tất cả').map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Button onClick={handleSaveEdit} className="w-full rounded-xl">
+                Cập nhật thông tin & Gửi lại
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   )
 }
