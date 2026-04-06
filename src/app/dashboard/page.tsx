@@ -190,10 +190,10 @@ export default function HomePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 opacity-90">
                   {filteredLessons.filter(l => l.status === 'rejected').map(lesson => (
                     <div key={lesson.id} className="relative transition-transform hover:-translate-y-1 group">
-                      <div className="absolute top-4 left-4 z-10 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-lg shadow-lg uppercase tracking-wider">Từ chối</div>
+                      <div className="absolute top-3 right-3 z-30 bg-red-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg uppercase tracking-wider border-2 border-white">Từ chối</div>
                       
                       {/* Menu tác vụ của tác giả */}
-                      <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute top-4 left-4 z-40 opacity-0 group-hover:opacity-100 transition-opacity">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-white/90 hover:bg-white shadow border border-gray-100">
@@ -231,10 +231,10 @@ export default function HomePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 opacity-90">
                   {filteredLessons.filter(l => l.status === 'pending').map(lesson => (
                     <div key={lesson.id} className="relative transition-transform hover:-translate-y-1 group">
-                      <div className="absolute top-4 left-4 z-10 bg-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-lg shadow-lg uppercase tracking-wider">Chờ duyệt</div>
+                      <div className="absolute top-3 right-3 z-30 bg-orange-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg uppercase tracking-wider border-2 border-white">Chờ duyệt</div>
                       
                       {/* Menu tác vụ của tác giả */}
-                      <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute top-4 left-4 z-40 opacity-0 group-hover:opacity-100 transition-opacity">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-white/90 hover:bg-white shadow border border-gray-100">
@@ -271,7 +271,8 @@ export default function HomePage() {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                   {filteredLessons.filter(l => l.status === 'approved').map(lesson => (
-                    <div key={lesson.id}>
+                    <div key={lesson.id} className="relative transition-transform hover:-translate-y-1">
+                      <div className="absolute top-3 right-3 z-30 bg-green-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg uppercase tracking-wider border-2 border-white">Đã duyệt</div>
                       <LessonCard lesson={lesson} onClick={() => { setSelectedLesson(lesson); setIsDetailOpen(true) }} />
                     </div>
                   ))}

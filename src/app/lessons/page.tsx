@@ -366,7 +366,7 @@ export default function LessonsPage() {
           filteredLessons.map((lesson) => (
             <div key={lesson.id} className="relative group hover:-translate-y-1 transition-transform">
               {/* Badge status nổi bật */}
-              <div className={`absolute -top-3 -right-3 z-0 px-3 py-1.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1 shadow-lg ring-4 ring-white
+              <div className={`absolute top-3 right-3 z-30 px-3 py-1.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1 shadow-lg border-2 border-white
                   ${lesson.status === 'approved' ? 'bg-green-500 text-white' : 
                     lesson.status === 'pending' ? 'bg-orange-500 text-white' : 'bg-red-500 text-white'}`}>
                   {lesson.status === 'approved' && <CheckCircle size={12} />}
@@ -376,7 +376,7 @@ export default function LessonsPage() {
               </div>
 
               {/* Nút tác vụ (Admin) */}
-              <div className="absolute top-4 left-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-4 left-4 z-40 opacity-0 group-hover:opacity-100 transition-opacity">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-white/90 hover:bg-white shadow border border-gray-100">
