@@ -15,15 +15,27 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import LessonCard from '@/components/lessons/LessonCard'
+import LessonDetail from '@/components/lessons/LessonDetail'
+import { Badge } from '@/components/ui/badge'
 
-const gradeLevels = ['Nhà trẻ', 'Mầm', 'Chồi', 'Lá']
+const gradeLevels = ['Tất cả', 'Nhà trẻ', 'Mầm', 'Chồi', 'Lá']
 
 export default function LessonsPage() {
   const supabase = createClient()
   const [lessons, setLessons] = useState<any[]>([])
   const [subjects, setSubjects] = useState<any[]>([])
+  const [teachers, setTeachers] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [isUploadOpen, setIsUploadOpen] = useState(false)
+  const [selectedLesson, setSelectedLesson] = useState<any>(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  
+  const [filters, setFilters] = useState({
+    search: '',
+    grade: 'Tất cả',
+    teacher: 'Tất cả'
+  })
   const [uploadData, setUploadData] = useState({
     title: '',
     subject_id: '',
@@ -37,11 +49,17 @@ export default function LessonsPage() {
   }, [])
 
   const fetchLessons = async () => {
+    setLoading(true)
     const { data } = await supabase
       .from('lessons')
-      .select('*, subjects(title)')
+      .select('*, subjects(title), profiles:teacher_id(full_name, avatar_url)')
       .order('created_at', { ascending: false })
-    if (data) setLessons(data)
+      
+    if (data) {
+      setLessons(data)
+      const uniqueTeachers = Array.from(new Set(data.filter((l: any) => l.profiles).map((l: any) => l.profiles.full_name))) as string[]
+      setTeachers(uniqueTeachers)
+    }
     setLoading(false)
   }
 
@@ -95,9 +113,16 @@ export default function LessonsPage() {
     }
   }
 
+  const filteredLessons = lessons.filter(lesson => {
+    const matchesSearch = lesson.title.toLowerCase().includes(filters.search.toLowerCase())
+    const matchesGrade = filters.grade === 'Tất cả' || lesson.grade_level === filters.grade
+    const matchesTeacher = filters.teacher === 'Tất cả' || lesson.profiles?.full_name === filters.teacher
+    return matchesSearch && matchesGrade && matchesTeacher
+  })
+
   return (
     <MainLayout>
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Kho bài giảng</h1>
           <p className="text-gray-500">Quản lý và theo dõi trạng thái các bài giảng của giáo viên.</p>
@@ -143,7 +168,7 @@ export default function LessonsPage() {
                       <SelectValue placeholder="Chọn khối" />
                     </SelectTrigger>
                     <SelectContent>
-                      {gradeLevels.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                      {gradeLevels.filter(g => g !== 'Tất cả').map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -172,41 +197,80 @@ export default function LessonsPage() {
         </Dialog>
       </div>
 
+      {/* Bộ lọc đa tầng (Multi-level Filter) */}
+      <div className="flex flex-col md:flex-row gap-4 mb-10 w-full">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <input 
+            type="text" 
+            placeholder="Tìm kiếm bài giảng..." 
+            className="w-full pl-12 pr-4 py-3 rounded-2xl border border-gray-100 bg-white shadow-sm focus:ring-2 focus:ring-primary/20 outline-none"
+            onChange={(e) => setFilters({...filters, search: e.target.value})}
+          />
+        </div>
+        <div className="flex gap-3">
+          <Select onValueChange={(val) => setFilters({...filters, grade: val})}>
+            <SelectTrigger className="w-[150px] rounded-2xl bg-white border-gray-100 h-12 shadow-sm text-gray-600">
+              <Filter className="mr-2" size={16} />
+              <SelectValue placeholder="Khối lớp" />
+            </SelectTrigger>
+            <SelectContent>
+              {gradeLevels.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <Select onValueChange={(val) => setFilters({...filters, teacher: val})}>
+            <SelectTrigger className="w-[180px] rounded-2xl bg-white border-gray-100 h-12 shadow-sm text-gray-600">
+              <Filter className="mr-2" size={16} />
+              <SelectValue placeholder="Giáo viên" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Tất cả">Tất cả giáo viên</SelectItem>
+              {teachers.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {/* Grid bài giảng */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {lessons.length === 0 ? (
-          <div className="col-span-full py-20 text-center text-gray-400">Chưa có bài giảng nào.</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {loading ? (
+          Array(4).fill(0).map((_, i) => (
+            <div key={i} className="glass-card rounded-3xl h-64 animate-pulse bg-gray-100/50" />
+          ))
+        ) : filteredLessons.length === 0 ? (
+          <div className="col-span-full py-20 text-center glass-card rounded-3xl text-gray-400">
+            Không tìm thấy bài giảng nào.
+          </div>
         ) : (
-          lessons.map((lesson) => (
-            <div key={lesson.id} className="glass-card rounded-3xl p-6 relative overflow-hidden group">
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-600">
-                  {lesson.file_type === 'mp4' ? <Play size={20} /> : <FileText size={20} />}
-                </div>
-                <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase flex items-center gap-1
-                  ${lesson.status === 'approved' ? 'bg-green-100 text-green-600' : 
-                    lesson.status === 'pending' ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'}`}>
-                  {lesson.status === 'approved' && <CheckCircle size={10} />}
-                  {lesson.status === 'pending' && <Clock size={10} />}
-                  {lesson.status === 'rejected' && <XCircle size={10} />}
+          filteredLessons.map((lesson) => (
+            <div key={lesson.id} className="relative group hover:-translate-y-1 transition-transform">
+              {/* Badge status nổi bật */}
+              <div className={`absolute -top-3 -right-3 z-20 px-3 py-1.5 rounded-full text-[10px] font-black uppercase flex items-center gap-1 shadow-lg ring-4 ring-white
+                  ${lesson.status === 'approved' ? 'bg-green-500 text-white' : 
+                    lesson.status === 'pending' ? 'bg-orange-500 text-white' : 'bg-red-500 text-white'}`}>
+                  {lesson.status === 'approved' && <CheckCircle size={12} />}
+                  {lesson.status === 'pending' && <Clock size={12} />}
+                  {lesson.status === 'rejected' && <XCircle size={12} />}
                   {lesson.status}
-                </div>
               </div>
-              
-              <h3 className="font-bold text-gray-900 group-hover:text-primary transition-colors">{lesson.title}</h3>
-              <div className="mt-2 flex gap-4 text-xs text-gray-400 font-medium">
-                <span>{lesson.subjects?.title}</span>
-                <span>•</span>
-                <span>{lesson.grade_level}</span>
-              </div>
-              
-              <div className="absolute right-0 bottom-0 opacity-10 group-hover:opacity-20 transition-opacity">
-                {lesson.file_type === 'mp4' ? <Play size={80} /> : <FileText size={80} />}
-              </div>
+              <LessonCard 
+                lesson={lesson} 
+                onClick={() => {
+                  setSelectedLesson(lesson)
+                  setIsDetailOpen(true)
+                }} 
+              />
             </div>
           ))
         )}
       </div>
+
+      <LessonDetail 
+        lesson={selectedLesson} 
+        isOpen={isDetailOpen} 
+        onClose={() => setIsDetailOpen(false)} 
+      />
     </MainLayout>
   )
 }

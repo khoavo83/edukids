@@ -7,6 +7,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import LessonDetail from '@/components/lessons/LessonDetail'
+import LessonCard from '@/components/lessons/LessonCard'
 
 const MOCK_MENU = [
   { day: 'Thứ 2', meal: 'Cháo sườn non hạt sen, Sữa chua' },
@@ -57,7 +58,7 @@ export default function LandingPage() {
   const fetchData = async () => {
     const { data } = await supabase
       .from('lessons')
-      .select('*, subjects(title)')
+      .select('*, subjects(title), profiles:teacher_id(full_name, avatar_url)')
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
       .limit(20) // Lấy 20 bài mới nhất cho trang công khai
@@ -213,49 +214,25 @@ export default function LandingPage() {
               </div>
 
               {/* Lưới bài học */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {loading ? (
-                  Array(4).fill(0).map((_, i) => (
-                    <div key={i} className="h-48 bg-gray-100 rounded-3xl animate-pulse" />
+                  Array(6).fill(0).map((_, i) => (
+                    <div key={i} className="h-64 bg-gray-100 rounded-3xl animate-pulse" />
                   ))
                 ) : filteredLessons.length === 0 ? (
                   <div className="col-span-full py-16 text-center text-gray-400 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
                     Chưa có bài giảng nào cho cấp bậc này.
                   </div>
                 ) : (
-                  filteredLessons.map((lesson, idx) => (
-                    <div 
+                  filteredLessons.map((lesson) => (
+                    <LessonCard 
                       key={lesson.id} 
-                      className="lesson-card-hover bg-white border border-gray-100 rounded-3xl overflow-hidden cursor-pointer group hover:border-primary/20"
+                      lesson={lesson} 
                       onClick={() => {
                         setSelectedLesson(lesson)
                         setIsDetailOpen(true)
-                      }}
-                    >
-                      <div className={`h-32 bg-gradient-to-br transition-all duration-500 flex items-center justify-center p-6 
-                        ${idx % 4 === 0 ? 'from-red-400 to-pink-500' : 
-                          idx % 4 === 1 ? 'from-blue-400 to-indigo-500' :
-                          idx % 4 === 2 ? 'from-green-400 to-emerald-500' : 'from-orange-400 to-yellow-500'}`}>
-                        
-                        <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm group-hover:scale-110 transition-transform duration-500">
-                          {lesson.file_type === 'mp4' ? <Play size={24} className="text-white fill-white" /> : 
-                            lesson.file_type === 'png' || lesson.file_type === 'jpg' ? <ImageIcon size={24} className="text-white" /> :
-                            <FileText size={24} className="text-white" />}
-                        </div>
-                      </div>
-                      <div className="p-5">
-                        <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px] uppercase font-black border-none mb-3">
-                          {lesson.subjects?.title}
-                        </Badge>
-                        <h3 className="font-bold text-gray-800 text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                          {lesson.title}
-                        </h3>
-                        <div className="mt-3 flex items-center justify-between text-xs">
-                          <span className="font-bold text-gray-400">{lesson.grade_level}</span>
-                          <span className="text-primary font-semibold">Xem ngay →</span>
-                        </div>
-                      </div>
-                    </div>
+                      }} 
+                    />
                   ))
                 )}
               </div>

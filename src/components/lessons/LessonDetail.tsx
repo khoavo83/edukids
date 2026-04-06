@@ -50,12 +50,11 @@ export default function LessonDetail({ lesson, isOpen, onClose }: LessonDetailPr
   }
 
   const checkBookmarkStatus = async (userId: string) => {
-
     const { data } = await supabase
       .from('bookmarks')
       .select('id')
       .eq('lesson_id', lesson.id)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single()
     setIsBookmarked(!!data)
   }

@@ -14,6 +14,7 @@ import {
   SelectValue 
 } from '@/components/ui/select'
 import LessonDetail from '@/components/lessons/LessonDetail'
+import LessonCard from '@/components/lessons/LessonCard'
 
 const gradeLevels = ['Tất cả', 'Nhà trẻ', 'Mầm', 'Chồi', 'Lá']
 
@@ -42,7 +43,7 @@ export default function HomePage() {
 
     const { data: lessonsData } = await supabase
       .from('lessons')
-      .select('*, subjects(title)')
+      .select('*, subjects(title), profiles:teacher_id(full_name, avatar_url)')
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
     
@@ -134,44 +135,15 @@ export default function HomePage() {
             Không tìm thấy bài giảng nào phù hợp.
           </div>
         ) : (
-          filteredLessons.map((lesson, idx) => (
-            <div 
+          filteredLessons.map((lesson) => (
+            <LessonCard 
               key={lesson.id} 
-              className="lesson-card-hover glass-card rounded-3xl overflow-hidden cursor-pointer group hover:bg-white"
+              lesson={lesson} 
               onClick={() => {
                 setSelectedLesson(lesson)
                 setIsDetailOpen(true)
-              }}
-            >
-              <div className={`h-40 bg-gradient-to-br transition-all duration-500 flex items-center justify-center p-8 
-                ${idx % 4 === 0 ? 'from-red-400 to-pink-500' : 
-                  idx % 4 === 1 ? 'from-blue-400 to-indigo-500' :
-                  idx % 4 === 2 ? 'from-green-400 to-emerald-500' : 'from-orange-400 to-yellow-500'}`}>
-                
-                <div className="bg-white/20 p-4 rounded-full backdrop-blur-sm group-hover:scale-110 transition-transform duration-500">
-                  {lesson.file_type === 'mp4' ? <Play size={32} className="text-white fill-white" /> : 
-                    lesson.file_type === 'png' || lesson.file_type === 'jpg' ? <ImageIcon size={32} className="text-white" /> :
-                    <FileText size={32} className="text-white" />}
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-3">
-                  <Badge variant="secondary" className="bg-primary/5 text-primary text-[10px] uppercase font-black tracking-widest border-none">
-                    {lesson.subjects?.title}
-                  </Badge>
-                  <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1">
-                    <Clock size={10} /> {new Date(lesson.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                <h3 className="font-bold text-gray-800 leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                  {lesson.title}
-                </h3>
-                <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-500">{lesson.grade_level}</span>
-                  <span className="text-[10px] text-gray-300 font-medium">Bấm để xem →</span>
-                </div>
-              </div>
-            </div>
+              }} 
+            />
           ))
         )}
       </div>
