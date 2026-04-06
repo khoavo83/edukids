@@ -11,7 +11,8 @@ import {
   CheckCircle,
   Archive,
   LogOut,
-  Layout
+  Layout,
+  Globe
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/utils/supabase/client'
@@ -72,7 +73,16 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t border-gray-50">
+      <div className="p-4 border-t border-gray-50 space-y-1">
+        <a 
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 w-full px-4 py-3 text-gray-500 hover:bg-primary/5 hover:text-primary rounded-xl transition-colors"
+        >
+          <Globe size={20} />
+          <span>Xem Trang chủ</span>
+        </a>
         <button 
           onClick={handleLogout}
           className="flex items-center gap-3 w-full px-4 py-3 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors"

@@ -40,7 +40,7 @@ export default function LoginPage() {
           ? 'Email hoặc mật khẩu không đúng.' 
           : error.message)
       } else {
-        router.push('/')
+        router.push('/dashboard')
         router.refresh()
       }
     } else {
