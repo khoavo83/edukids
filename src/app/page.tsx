@@ -39,13 +39,20 @@ export default function LandingPage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [activeGrade, setActiveGrade] = useState('Tất cả')
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
     fetchData()
+    checkAuth()
     const handleScroll = () => setIsScrolled(window.scrollY > 20)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  const checkAuth = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    setIsAuthenticated(!!user)
+  }
 
   const fetchData = async () => {
     const { data } = await supabase
@@ -76,11 +83,19 @@ export default function LandingPage() {
               EduKids
             </span>
           </div>
-          <Link href="/login">
-            <Button className="rounded-xl gap-2 font-bold bg-white text-primary border-2 border-primary/20 hover:bg-primary/10 shadow-sm">
-              <LogIn size={18} /> Đăng nhập
-            </Button>
-          </Link>
+          {isAuthenticated ? (
+            <Link href="/dashboard">
+              <Button className="rounded-xl gap-2 font-bold bg-primary text-white hover:bg-primary/90 shadow-sm border-none">
+                <Layout size={18} /> Bảng điều khiển
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/login">
+              <Button className="rounded-xl gap-2 font-bold bg-white text-primary border-2 border-primary/20 hover:bg-primary/10 shadow-sm">
+                <LogIn size={18} /> Đăng nhập
+              </Button>
+            </Link>
+          )}
         </div>
       </nav>
 
