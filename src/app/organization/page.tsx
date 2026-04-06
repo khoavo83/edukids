@@ -209,30 +209,42 @@ export default function OrganizationPage() {
                 </Dialog>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="space-y-10">
                 {classes.length === 0 ? (
-                  <div className="col-span-full glass-card rounded-3xl p-10 text-center text-gray-500">Chưa thiết lập Lớp học nào.</div>
+                  <div className="glass-card rounded-3xl p-10 text-center text-gray-500">Chưa thiết lập Lớp học nào.</div>
                 ) : (
-                  classes.map(c => (
-                    <div key={c.id} className="glass-card rounded-3xl p-6 group transition-all duration-200 border-t-4 border-t-primary">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{c.grade_level}</span>
-                        <div className="flex gap-2">
-                          <button onClick={() => { setEditingClass(c); setEditClassDialog(true); }} className="text-gray-300 hover:text-blue-500 transition-colors">
-                            <Edit2 size={16} />
-                          </button>
-                          <button onClick={() => handleDeleteClass(c.id)} className="text-gray-300 hover:text-red-500 transition-colors">
-                            <Trash2 size={16} />
-                          </button>
+                  GRADE_LEVELS.map(level => {
+                    const levelClasses = classes.filter(c => c.grade_level === level)
+                    if (levelClasses.length === 0) return null
+                    
+                    return (
+                      <div key={level} className="space-y-4">
+                        <h2 className="text-xl font-black text-gray-800 border-b-2 border-primary/20 pb-2 inline-block px-1">🏫 Khối {level}</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {levelClasses.map(c => (
+                            <div key={c.id} className="glass-card rounded-3xl p-6 group transition-all duration-200 border-t-4 border-t-primary hover:shadow-xl hover:shadow-primary/10 bg-white/70">
+                              <div className="flex justify-between items-start mb-2">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{c.grade_level}</span>
+                                <div className="flex gap-2">
+                                  <button onClick={() => { setEditingClass(c); setEditClassDialog(true); }} className="text-gray-300 hover:text-blue-500 transition-colors">
+                                    <Edit2 size={16} />
+                                  </button>
+                                  <button onClick={() => handleDeleteClass(c.id)} className="text-gray-300 hover:text-red-500 transition-colors">
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </div>
+                              <h3 className="text-xl font-bold text-gray-900 mb-4">{c.name}</h3>
+                              <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl">
+                                <Users size={16} className="text-primary" />
+                                <span className="text-sm text-gray-600 font-medium">Giáo viên: {c.profiles?.full_name || 'Chưa phân công'}</span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-4">{c.name}</h3>
-                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl">
-                        <Users size={16} className="text-primary" />
-                        <span className="text-sm text-gray-600 font-medium">Giáo viên: {c.profiles?.full_name || 'Chưa phân công'}</span>
-                      </div>
-                    </div>
-                  ))
+                    )
+                  })
                 )}
               </div>
 
