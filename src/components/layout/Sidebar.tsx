@@ -2,31 +2,39 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { 
   Home, 
   Library, 
   Users, 
   Settings, 
-  PlusCircle, 
   CheckCircle,
   Archive,
   LogOut,
   Layout
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/utils/supabase/client'
 
 const sidebarItems = [
   { name: 'Trang chủ', icon: Home, href: '/' },
   { name: 'Thư viện bài học', icon: Library, href: '/lessons' },
-  { name: 'Quản lý bộ môn', icon: Archive, href: '/subjects', role: 'admin' },
-  { name: 'Phê duyệt bài', icon: CheckCircle, href: '/review', role: 'admin' },
-  { name: 'Người dùng', icon: Users, href: '/users', role: 'admin' },
-  { name: 'Cài đặt trường', icon: Settings, href: '/settings', role: 'admin' },
+  { name: 'Quản lý bộ môn', icon: Archive, href: '/subjects' },
+  { name: 'Phê duyệt bài', icon: CheckCircle, href: '/review' },
+  { name: 'Người dùng', icon: Users, href: '/users' },
+  { name: 'Cài đặt trường', icon: Settings, href: '/settings' },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const supabase = createClient()
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
 
   return (
     <div className="w-64 h-screen bg-white border-r border-gray-100 flex flex-col fixed left-0 top-0 z-50">
@@ -41,7 +49,6 @@ export default function Sidebar() {
 
       <nav className="flex-1 px-4 py-4 space-y-1">
         {sidebarItems.map((item) => {
-          // Placeholder check for role
           const isActive = pathname === item.href
           
           return (
@@ -66,7 +73,10 @@ export default function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-gray-50">
-        <button className="flex items-center gap-3 w-full px-4 py-3 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors">
+        <button 
+          onClick={handleLogout}
+          className="flex items-center gap-3 w-full px-4 py-3 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors"
+        >
           <LogOut size={20} />
           <span>Đăng xuất</span>
         </button>

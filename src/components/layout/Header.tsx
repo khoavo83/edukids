@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Bell, Search, User, LogOut, Settings as SettingsIcon } from 'lucide-react'
 import { 
   DropdownMenu, 
@@ -12,7 +12,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { createClient } from '@/utils/supabase/client'
+import { useRouter } from 'next/navigation'
 
 const mockNotifications = [
   { id: 1, text: 'Bài giảng "Bé học đếm" đã được duyệt.', time: '5 phút trước' },
@@ -22,6 +23,39 @@ const mockNotifications = [
 
 export default function Header() {
   const [hasUnread, setHasUnread] = useState(true)
+  const [userName, setUserName] = useState('Người dùng')
+  const [userRole, setUserRole] = useState('')
+  const supabase = createClient()
+  const router = useRouter()
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        // Lấy thông tin profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, role')
+          .eq('id', user.id)
+          .single()
+        
+        if (profile) {
+          setUserName(profile.full_name || user.email || 'Người dùng')
+          setUserRole(profile.role === 'admin' ? 'Quản trị viên' : 
+                      profile.role === 'teacher' ? 'Giáo viên' : 'Phụ huynh')
+        } else {
+          setUserName(user.email || 'Người dùng')
+        }
+      }
+    }
+    fetchUser()
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
 
   return (
     <header className="h-20 bg-white/40 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-8 sticky top-0 z-40">
@@ -70,11 +104,11 @@ export default function Header() {
           <DropdownMenuTrigger asChild>
             <div className="flex items-center gap-3 cursor-pointer group">
               <div className="text-right hidden sm:block">
-                <div className="text-sm font-bold text-gray-900 group-hover:text-primary transition-colors">Admin EduKids</div>
-                <div className="text-[10px] text-gray-400 font-medium">BGH Nhà Trường</div>
+                <div className="text-sm font-bold text-gray-900 group-hover:text-primary transition-colors">{userName}</div>
+                <div className="text-[10px] text-gray-400 font-medium">{userRole}</div>
               </div>
               <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center font-bold shadow-sm shadow-primary/10">
-                A
+                {userName.charAt(0).toUpperCase()}
               </div>
             </div>
           </DropdownMenuTrigger>
@@ -88,7 +122,10 @@ export default function Header() {
               <SettingsIcon size={16} /> Cài đặt thiết bị
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="rounded-lg gap-2 text-red-500 hover:bg-red-50 focus:text-red-600 focus:bg-red-50 cursor-pointer font-bold">
+            <DropdownMenuItem 
+              className="rounded-lg gap-2 text-red-500 hover:bg-red-50 focus:text-red-600 focus:bg-red-50 cursor-pointer font-bold"
+              onClick={handleLogout}
+            >
               <LogOut size={16} /> Đăng xuất
             </DropdownMenuItem>
           </DropdownMenuContent>
