@@ -30,19 +30,22 @@ export async function middleware(request: NextRequest) {
   // Refresh session if expired
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Nếu chưa đăng nhập và không phải trang login → redirect sang login
-  const isLoginPage = request.nextUrl.pathname === '/login'
-  
-  if (!user && !isLoginPage) {
+  // Xác định các public routes
+  const isPublicRoute = request.nextUrl.pathname === '/' || 
+                        request.nextUrl.pathname === '/login' || 
+                        request.nextUrl.pathname.startsWith('/auth')
+
+  // Nếu chưa đăng nhập và vào trang private → redirect sang login
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // Nếu đã đăng nhập mà vào trang login → redirect về trang chủ
-  if (user && isLoginPage) {
+  // Nếu đã đăng nhập mà vào trang login → redirect về dashboard
+  if (user && request.nextUrl.pathname === '/login') {
     const url = request.nextUrl.clone()
-    url.pathname = '/'
+    url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 

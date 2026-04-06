@@ -30,26 +30,26 @@ export default function LessonDetail({ lesson, isOpen, onClose }: LessonDetailPr
   const [newComment, setNewComment] = useState('')
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
     if (isOpen && lesson) {
       fetchComments()
-      checkBookmarkStatus()
+      checkAuthStatus()
     }
   }, [isOpen, lesson])
 
-  const fetchComments = async () => {
-    const { data } = await supabase
-      .from('comments')
-      .select('*, profiles(full_name)')
-      .eq('lesson_id', lesson.id)
-      .order('created_at', { ascending: true })
-    if (data) setComments(data)
+  const checkAuthStatus = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      setIsAuthenticated(true)
+      checkBookmarkStatus(user.id)
+    } else {
+      setIsAuthenticated(false)
+    }
   }
 
-  const checkBookmarkStatus = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+  const checkBookmarkStatus = async (userId: string) => {
 
     const { data } = await supabase
       .from('bookmarks')
@@ -121,17 +121,25 @@ export default function LessonDetail({ lesson, isOpen, onClose }: LessonDetailPr
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button 
-                    variant={isBookmarked ? "default" : "outline"}
-                    className="rounded-xl gap-2 font-bold"
-                    onClick={toggleBookmark}
-                  >
-                    <Bookmark size={18} className={isBookmarked ? "fill-white" : ""} />
-                    {isBookmarked ? 'Đã lưu' : 'Lưu lại'}
-                  </Button>
-                  <Button className="rounded-xl gap-2 font-bold" onClick={() => window.open(lesson.file_url, '_blank')}>
-                    <Download size={18} /> Tải về
-                  </Button>
+                  {isAuthenticated ? (
+                    <>
+                      <Button 
+                        variant={isBookmarked ? "default" : "outline"}
+                        className="rounded-xl gap-2 font-bold"
+                        onClick={toggleBookmark}
+                      >
+                        <Bookmark size={18} className={isBookmarked ? "fill-white" : ""} />
+                        {isBookmarked ? 'Đã lưu' : 'Lưu lại'}
+                      </Button>
+                      <Button className="rounded-xl gap-2 font-bold" onClick={() => window.open(lesson.file_url, '_blank')}>
+                        <Download size={18} /> Tải về
+                      </Button>
+                    </>
+                  ) : (
+                    <Button variant="outline" className="rounded-xl font-bold cursor-not-allowed opacity-50" disabled>
+                      Đăng nhập để Tải & Lưu
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -165,23 +173,29 @@ export default function LessonDetail({ lesson, isOpen, onClose }: LessonDetailPr
             </ScrollArea>
 
             <div className="p-4 border-t border-gray-50">
-              <div className="relative">
-                <Input 
-                  placeholder="Gửi tin nhắn..." 
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  className="rounded-2xl pr-10 bg-gray-50 border-none h-11 focus:ring-primary/20"
-                  onKeyDown={(e) => e.key === 'Enter' && postComment()}
-                />
-                <Button 
-                  size="icon" 
-                  variant="ghost"
-                  className="absolute right-1 top-1 h-9 w-9 rounded-xl text-primary hover:bg-primary/10"
-                  onClick={postComment}
-                >
-                  <Send size={16} />
-                </Button>
-              </div>
+              {isAuthenticated ? (
+                <div className="relative">
+                  <Input 
+                    placeholder="Gửi tin nhắn..." 
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    className="rounded-2xl pr-10 bg-gray-50 border-none h-11 focus:ring-primary/20"
+                    onKeyDown={(e) => e.key === 'Enter' && postComment()}
+                  />
+                  <Button 
+                    size="icon" 
+                    variant="ghost"
+                    className="absolute right-1 top-1 h-9 w-9 rounded-xl text-primary hover:bg-primary/10"
+                    onClick={postComment}
+                  >
+                    <Send size={16} />
+                  </Button>
+                </div>
+              ) : (
+                <div className="bg-gray-50 rounded-2xl p-3 text-center text-xs text-gray-500 font-medium">
+                  Vui lòng đăng nhập để bình luận.
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/utils/supabase/client'
 
 const sidebarItems = [
-  { name: 'Trang chủ', icon: Home, href: '/' },
+  { name: 'Bảng điều khiển', icon: Home, href: '/dashboard' },
   { name: 'Thư viện bài học', icon: Library, href: '/lessons' },
   { name: 'Quản lý bộ môn', icon: Archive, href: '/subjects' },
   { name: 'Phê duyệt bài', icon: CheckCircle, href: '/review' },
