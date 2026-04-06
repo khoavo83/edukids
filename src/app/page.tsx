@@ -5,6 +5,7 @@ import MainLayout from '@/components/layout/MainLayout'
 import { Search, Filter, Play, FileText, ImageIcon, Clock } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { 
   Select, 
   SelectContent, 
