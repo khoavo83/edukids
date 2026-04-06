@@ -150,15 +150,14 @@ export default function LessonDetail({ lesson, isOpen, onClose }: LessonDetailPr
                   {/* Loading overlay */}
                   <div className="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center gap-4 z-10 office-loading">
                     <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-                    <p className="text-white/60 text-sm font-medium">Đang mở tài liệu Office...</p>
-                    <p className="text-white/30 text-xs">File DOC/PPT cần thời gian xử lý</p>
+                    <p className="text-white/60 text-sm font-medium">Đang mở tài liệu...</p>
+                    <p className="text-white/30 text-xs">Powered by Google Docs Viewer</p>
                   </div>
                   <iframe
-                    src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(lesson.file_url)}`}
+                    src={`https://docs.google.com/gview?url=${encodeURIComponent(lesson.file_url)}&embedded=true`}
                     className="w-full h-full border-0 relative z-20"
                     title={lesson.title}
                     onLoad={(e) => {
-                      // Ẩn loading khi iframe đã tải xong
                       const el = (e.target as HTMLElement).parentElement?.querySelector('.office-loading') as HTMLElement
                       if (el) el.style.display = 'none'
                     }}
