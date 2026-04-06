@@ -225,14 +225,15 @@ export default function LandingPage() {
                   </div>
                 ) : (
                   filteredLessons.map((lesson) => (
-                    <LessonCard 
-                      key={lesson.id} 
-                      lesson={lesson} 
-                      onClick={() => {
-                        setSelectedLesson(lesson)
-                        setIsDetailOpen(true)
-                      }} 
-                    />
+                    <div key={lesson.id} className="transition-transform hover:-translate-y-1">
+                      <LessonCard 
+                        lesson={lesson} 
+                        onClick={() => {
+                          setSelectedLesson(lesson)
+                          setIsDetailOpen(true)
+                        }} 
+                      />
+                    </div>
                   ))
                 )}
               </div>
