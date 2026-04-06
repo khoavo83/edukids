@@ -41,11 +41,20 @@ export default function HomePage() {
     const { data: subjectsData } = await supabase.from('subjects').select('*')
     if (subjectsData) setSubjects(subjectsData)
 
-    const { data: lessonsData, error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser()
+
+    let query = supabase
       .from('lessons')
       .select('*, subjects(title), profiles(full_name, avatar_url)')
-      .eq('status', 'approved')
       .order('created_at', { ascending: false })
+
+    if (user) {
+      query = query.or(`status.eq.approved,teacher_id.eq.${user.id}`)
+    } else {
+      query = query.eq('status', 'approved')
+    }
+
+    const { data: lessonsData, error } = await query
     
     if (error) console.error(error)
     if (lessonsData) setLessons(lessonsData)
@@ -114,38 +123,77 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Danh sách bài giảng */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-          Tài liệu học tập
-          {!loading && (
-            <span className="text-xs font-normal bg-primary/10 text-primary px-3 py-1 rounded-full">
-              {filteredLessons.length} bài đã duyệt
-            </span>
-          )}
-        </h2>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      {/* Danh sách bài giảng phân theo Group */}
+      <div className="space-y-12">
         {loading ? (
-          Array(4).fill(0).map((_, i) => (
-            <div key={i} className="glass-card rounded-3xl h-64 animate-pulse bg-gray-100/50" />
-          ))
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {Array(4).fill(0).map((_, i) => (
+              <div key={i} className="glass-card rounded-3xl h-64 animate-pulse bg-gray-100/50" />
+            ))}
+          </div>
         ) : filteredLessons.length === 0 ? (
-          <div className="col-span-full py-20 text-center glass-card rounded-3xl text-gray-400">
+          <div className="py-20 text-center glass-card rounded-3xl text-gray-400">
             Không tìm thấy bài giảng nào phù hợp.
           </div>
         ) : (
-          filteredLessons.map((lesson) => (
-            <LessonCard 
-              key={lesson.id} 
-              lesson={lesson} 
-              onClick={() => {
-                setSelectedLesson(lesson)
-                setIsDetailOpen(true)
-              }} 
-            />
-          ))
+          <>
+            {/* Nhóm Bị từ chối */}
+            {filteredLessons.filter(l => l.status === 'rejected').length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold text-red-500 mb-6 flex items-center gap-2">
+                  Bài giảng Yêu cầu Sửa / Bị từ chối
+                  <span className="text-xs font-normal bg-red-100/50 text-red-500 px-3 py-1 rounded-full">
+                    {filteredLessons.filter(l => l.status === 'rejected').length} bài
+                  </span>
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 opacity-90">
+                  {filteredLessons.filter(l => l.status === 'rejected').map(lesson => (
+                    <div key={lesson.id} className="relative transition-transform hover:-translate-y-1">
+                      <div className="absolute top-4 left-4 z-10 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-lg shadow-lg uppercase tracking-wider">Từ chối</div>
+                      <LessonCard lesson={lesson} onClick={() => { setSelectedLesson(lesson); setIsDetailOpen(true) }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Nhóm Chờ duyệt */}
+            {filteredLessons.filter(l => l.status === 'pending').length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold text-orange-500 mb-6 flex items-center gap-2">
+                  Bài giảng Đang chờ duyệt
+                  <span className="text-xs font-normal bg-orange-100/50 text-orange-500 px-3 py-1 rounded-full">
+                    {filteredLessons.filter(l => l.status === 'pending').length} bài
+                  </span>
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 opacity-90">
+                  {filteredLessons.filter(l => l.status === 'pending').map(lesson => (
+                    <div key={lesson.id} className="relative transition-transform hover:-translate-y-1">
+                      <div className="absolute top-4 left-4 z-10 bg-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-lg shadow-lg uppercase tracking-wider">Chờ duyệt</div>
+                      <LessonCard lesson={lesson} onClick={() => { setSelectedLesson(lesson); setIsDetailOpen(true) }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Nhóm Đã duyệt (Kho chung) */}
+            {filteredLessons.filter(l => l.status === 'approved').length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                  Kho tài liệu Chung
+                  <span className="text-xs font-normal bg-primary/10 text-primary px-3 py-1 rounded-full">
+                    {filteredLessons.filter(l => l.status === 'approved').length} bài đã duyệt
+                  </span>
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                  {filteredLessons.filter(l => l.status === 'approved').map(lesson => (
+                    <LessonCard key={lesson.id} lesson={lesson} onClick={() => { setSelectedLesson(lesson); setIsDetailOpen(true) }} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
