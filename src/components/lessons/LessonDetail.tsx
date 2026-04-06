@@ -100,11 +100,19 @@ export default function LessonDetail({ lesson, isOpen, onClose }: LessonDetailPr
   const getFileCategory = () => {
     if (!lesson?.file_type) return 'unknown'
     const ft = lesson.file_type.toLowerCase()
+    if (ft === 'youtube') return 'youtube'
     if (['mp4', 'webm', 'ogg', 'mov'].includes(ft)) return 'video'
     if (['pdf'].includes(ft)) return 'pdf'
     if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ft)) return 'image'
     if (['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'].includes(ft)) return 'office'
     return 'other'
+  }
+
+  const getYouTubeId = (url: string) => {
+    if (!url) return null
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/
+    const match = url.match(regExp)
+    return (match && match[2].length === 11) ? match[2] : null
   }
 
   const fileCategory = getFileCategory()
@@ -118,6 +126,16 @@ export default function LessonDetail({ lesson, isOpen, onClose }: LessonDetailPr
           {/* Left Side: Lesson Content - Chiếm phần lớn */}
           <div className="flex-[2] bg-gray-950 flex flex-col">
             <div className="flex-1 flex items-center justify-center overflow-hidden relative">
+              {fileCategory === 'youtube' && (
+                <iframe
+                  src={`https://www.youtube.com/embed/${getYouTubeId(lesson.file_url)}?autoplay=1`}
+                  className="w-full h-full border-0 bg-black"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title={lesson.title}
+                />
+              )}
+
               {fileCategory === 'video' && (
                 <video 
                   src={lesson.file_url} 

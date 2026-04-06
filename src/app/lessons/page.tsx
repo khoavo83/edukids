@@ -54,7 +54,8 @@ export default function LessonsPage() {
     title: '',
     subject_id: '',
     grade_level: '',
-    file: null as File | null
+    file: null as File | null,
+    link: '' as string
   })
 
   useEffect(() => {
@@ -86,26 +87,34 @@ export default function LessonsPage() {
   const [isUploading, setIsUploading] = useState(false)
 
   const handleUpload = async () => {
-    if (!uploadData.file || !uploadData.subject_id || !uploadData.grade_level) {
-      return alert("Vui lòng nhập đủ Tiêu đề, chọn Môn, Khối và File đính kèm!")
+    if ((!uploadData.file && !uploadData.link) || !uploadData.title || !uploadData.subject_id || !uploadData.grade_level) {
+      return alert("Vui lòng nhập đủ Tiêu đề, chọn Môn, Khối và File HOẶC Link đính kèm!")
     }
     setIsUploading(true)
 
-    // 1. Upload to Storage
-    const fileExt = uploadData.file.name.split('.').pop()
-    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
-    const { data: storageData, error: storageError } = await supabase.storage
-      .from('lessons')
-      .upload(fileName, uploadData.file)
+    let publicUrl = ''
+    let fileExt = 'unknown'
 
-    if (storageError) {
-      setIsUploading(false)
-      console.error(storageError)
-      return alert('Lỗi tải tệp lên máy chủ: ' + storageError.message + '\n(Có thể Supabase chưa tạo ổ lưu trữ "lessons")')
+    if (uploadData.link) {
+      publicUrl = uploadData.link
+      const isYoutube = uploadData.link.includes('youtube.com') || uploadData.link.includes('youtu.be')
+      fileExt = isYoutube ? 'youtube' : 'link'
+    } else if (uploadData.file) {
+      fileExt = uploadData.file.name.split('.').pop() || 'unknown'
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
+      const { data: storageData, error: storageError } = await supabase.storage
+        .from('lessons')
+        .upload(fileName, uploadData.file)
+
+      if (storageError) {
+        setIsUploading(false)
+        console.error(storageError)
+        return alert('Lỗi tải tệp lên máy chủ: ' + storageError.message + '\n(Có thể Supabase chưa tạo ổ lưu trữ "lessons")')
+      }
+
+      const { data } = supabase.storage.from('lessons').getPublicUrl(fileName)
+      publicUrl = data.publicUrl
     }
-
-    // 2. Save public URL
-    const { data: { publicUrl } } = supabase.storage.from('lessons').getPublicUrl(fileName)
 
     // 3. Insert into DB
     const { data: { user } } = await supabase.auth.getUser()
@@ -123,7 +132,7 @@ export default function LessonsPage() {
     setIsUploading(false)
     if (!dbError) {
       setIsUploadOpen(false)
-      setUploadData({ title: '', subject_id: '', grade_level: '', file: null })
+      setUploadData({ title: '', subject_id: '', grade_level: '', file: null, link: '' })
       alert("Tải bài giảng cấp tốc thành công! Vui lòng chờ Ban giám hiệu phê duyệt.")
       fetchLessons()
     } else {
@@ -258,22 +267,42 @@ export default function LessonsPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Tài liệu (Video, PDF, Hình ảnh...)</Label>
-                <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-primary/50 transition-colors cursor-pointer relative overflow-hidden">
-                  <input 
-                    type="file" 
-                    className="absolute inset-0 opacity-0 cursor-pointer" 
-                    onChange={(e) => setUploadData({...uploadData, file: e.target.files?.[0] || null})}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Tài liệu đính kèm (chỉ chọn 1 File HOẶC Link)</Label>
+                  <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-colors cursor-pointer relative overflow-hidden ${uploadData.link ? 'opacity-50 pointer-events-none border-gray-200' : 'hover:border-primary/50 border-gray-200'}`}>
+                    <input 
+                      type="file" 
+                      className="absolute inset-0 opacity-0 cursor-pointer" 
+                      onChange={(e) => setUploadData({...uploadData, file: e.target.files?.[0] || null})}
+                    />
+                    <UploadCloud className="mx-auto text-gray-400 mb-2" size={32} />
+                    <p className="text-sm text-gray-500">
+                      {uploadData.file ? uploadData.file.name : 'Nhấn để chọn file từ máy tính'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="relative flex items-center p-2">
+                  <div className="flex-grow border-t border-gray-200"></div>
+                  <span className="flex-shrink-0 px-4 text-xs text-gray-400 font-bold uppercase tracking-widest">Hoặc</span>
+                  <div className="flex-grow border-t border-gray-200"></div>
+                </div>
+
+                <div className="space-y-2 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
+                  <Label>Gắn Link YouTube / Website</Label>
+                  <Input 
+                    placeholder="Dán link tại đây (vd: youtube.com/watch?v=...)" 
+                    value={uploadData.link}
+                    onChange={(e) => setUploadData({...uploadData, link: e.target.value})}
+                    disabled={!!uploadData.file}
+                    className="bg-white"
                   />
-                  <UploadCloud className="mx-auto text-gray-400 mb-2" size={32} />
-                  <p className="text-sm text-gray-500">
-                    {uploadData.file ? uploadData.file.name : 'Nhấn để chọn file hoặc kéo thả vào đây'}
-                  </p>
+                  {uploadData.file && <p className="text-xs text-amber-500 mt-1">Gỡ bỏ file upload để có thể dán link</p>}
                 </div>
               </div>
 
-              <Button onClick={handleUpload} className="w-full rounded-xl" disabled={!uploadData.file || isUploading}>
+              <Button onClick={handleUpload} className="w-full rounded-xl mt-4" disabled={(!uploadData.file && !uploadData.link) || isUploading}>
                 {isUploading ? 'Đang xử lý, vui lòng chờ...' : 'Bắt đầu tải lên'}
               </Button>
             </div>

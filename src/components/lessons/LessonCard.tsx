@@ -14,7 +14,17 @@ const getInitials = (name: string) => {
 
 export default function LessonCard({ lesson, onClick }: LessonCardProps) {
   const isVideo = lesson.file_type === 'mp4' || lesson.file_type === 'mov'
+  const isYoutube = lesson.file_type === 'youtube'
   const isImage = lesson.file_type === 'png' || lesson.file_type === 'jpg' || lesson.file_type === 'jpeg' || lesson.file_type === 'webp'
+
+  const getYouTubeId = (url: string) => {
+    if (!url) return null
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/
+    const match = url.match(regExp)
+    return (match && match[2].length === 11) ? match[2] : null
+  }
+
+  const ytId = isYoutube ? getYouTubeId(lesson.file_url) : null
 
   return (
     <div 
@@ -32,6 +42,12 @@ export default function LessonCard({ lesson, onClick }: LessonCardProps) {
             onMouseEnter={(e) => { e.currentTarget.play() }} 
             onMouseLeave={(e) => { e.currentTarget.pause() }} 
           />
+        ) : isYoutube && ytId ? (
+          <img 
+            src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+            alt={lesson.title}
+          />
         ) : isImage ? (
           <img 
             src={lesson.file_url} 
@@ -46,7 +62,7 @@ export default function LessonCard({ lesson, onClick }: LessonCardProps) {
         )}
         
         {/* Icon Overlay Giữa (Giống Youtube) */}
-        {isVideo && (
+        {(isVideo || isYoutube) && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/0 transition-colors">
             <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
               <Play size={20} className="text-white fill-white ml-1" />
