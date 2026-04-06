@@ -19,7 +19,7 @@ import { createClient } from '@/utils/supabase/client'
 const sidebarItems = [
   { name: 'Bảng điều khiển', icon: Home, href: '/dashboard' },
   { name: 'Thư viện bài học', icon: Library, href: '/lessons' },
-  { name: 'Quản lý bộ môn', icon: Archive, href: '/subjects' },
+  { name: 'Tổ chức Trường', icon: Archive, href: '/organization' },
   { name: 'Phê duyệt bài', icon: CheckCircle, href: '/review' },
   { name: 'Người dùng', icon: Users, href: '/users' },
   { name: 'Cài đặt trường', icon: Settings, href: '/settings' },

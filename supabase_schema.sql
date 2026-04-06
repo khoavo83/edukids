@@ -21,6 +21,15 @@ CREATE TABLE subjects (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- 3.5 Classes table
+CREATE TABLE classes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  grade_level TEXT NOT NULL,
+  teacher_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- 4. Lessons table
 CREATE TABLE lessons (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -80,18 +89,26 @@ ALTER TABLE lessons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE school_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
 
 -- 10. RLS Policies
+-- School Settings
+CREATE POLICY "School settings viewable by everyone" ON school_settings FOR SELECT USING (true);
+CREATE POLICY "Allow authenticated users to update settings" ON school_settings FOR ALL USING (auth.role() = 'authenticated');
+
 -- Profiles
 CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
 
 -- Subjects
 CREATE POLICY "Subjects viewable by everyone" ON subjects FOR SELECT USING (true);
-CREATE POLICY "Only admins modify subjects" ON subjects FOR ALL USING (
-  (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
-);
+CREATE POLICY "Allow authenticated to modify subjects" ON subjects FOR ALL USING (auth.role() = 'authenticated');
+
+-- Classes
+CREATE POLICY "Classes viewable by everyone" ON classes FOR SELECT USING (true);
+CREATE POLICY "Allow authenticated admin manage classes" ON classes FOR ALL USING (auth.role() = 'authenticated');
 
 -- Lessons
 CREATE POLICY "Approved lessons viewable by everyone" ON lessons FOR SELECT USING (status = 'approved');
