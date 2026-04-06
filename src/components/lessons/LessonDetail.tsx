@@ -97,38 +97,94 @@ export default function LessonDetail({ lesson, isOpen, onClose }: LessonDetailPr
     }
   }
 
+  const getFileCategory = () => {
+    if (!lesson?.file_type) return 'unknown'
+    const ft = lesson.file_type.toLowerCase()
+    if (['mp4', 'webm', 'ogg', 'mov'].includes(ft)) return 'video'
+    if (['pdf'].includes(ft)) return 'pdf'
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ft)) return 'image'
+    if (['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'].includes(ft)) return 'office'
+    return 'other'
+  }
+
+  const fileCategory = getFileCategory()
+
   if (!lesson) return null
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl h-[80vh] p-0 overflow-hidden flex flex-col rounded-3xl glass-card">
+      <DialogContent className="max-w-7xl w-[95vw] h-[92vh] p-0 overflow-hidden flex flex-col rounded-3xl glass-card border-0 shadow-2xl">
         <div className="flex flex-1 overflow-hidden">
-          {/* Left Side: Lesson Content */}
-          <div className="flex-[1.5] bg-gray-50 flex flex-col">
-            <div className="flex-1 flex items-center justify-center p-8">
-              {lesson.file_type === 'mp4' ? (
-                <div className="w-full aspect-video bg-black rounded-2xl overflow-hidden relative group">
-                  <video src={lesson.file_url} controls className="w-full h-full" />
+          {/* Left Side: Lesson Content - Chiếm phần lớn */}
+          <div className="flex-[2] bg-gray-950 flex flex-col">
+            <div className="flex-1 flex items-center justify-center overflow-hidden relative">
+              {fileCategory === 'video' && (
+                <video 
+                  src={lesson.file_url} 
+                  controls 
+                  className="w-full h-full object-contain" 
+                  autoPlay
+                />
+              )}
+
+              {fileCategory === 'pdf' && (
+                <iframe
+                  src={`${lesson.file_url}#toolbar=1&navpanes=1&scrollbar=1`}
+                  className="w-full h-full border-0"
+                  title={lesson.title}
+                />
+              )}
+
+              {fileCategory === 'image' && (
+                <div className="w-full h-full flex items-center justify-center p-4 bg-gray-900">
+                  <img 
+                    src={lesson.file_url} 
+                    alt={lesson.title}
+                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                  />
                 </div>
-              ) : (
-                <div className="w-full h-full bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4">
-                  <BookOpen size={64} className="text-primary/20" />
-                  <p className="text-gray-400 font-medium italic">Xem tài liệu tại link tải xuống bên dưới</p>
+              )}
+
+              {fileCategory === 'office' && (
+                <iframe
+                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(lesson.file_url)}`}
+                  className="w-full h-full border-0"
+                  title={lesson.title}
+                />
+              )}
+
+              {fileCategory === 'other' && (
+                <div className="w-full h-full bg-gray-900 flex flex-col items-center justify-center gap-4">
+                  <BookOpen size={80} className="text-white/10" />
+                  <p className="text-white/40 font-medium italic text-sm">Không hỗ trợ xem trước định dạng này</p>
+                  <Button 
+                    className="rounded-xl gap-2 font-bold mt-2" 
+                    onClick={() => window.open(lesson.file_url, '_blank')}
+                  >
+                    <Download size={18} /> Tải file để xem
+                  </Button>
                 </div>
               )}
             </div>
             
-            <div className="p-6 bg-white border-t border-gray-100">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-xl font-black text-gray-900">{lesson.title}</h2>
-                  <div className="flex gap-4 mt-2 text-xs font-bold uppercase tracking-widest text-gray-400">
+            {/* Bottom bar - Thông tin bài giảng */}
+            <div className="p-5 bg-white/95 backdrop-blur-sm border-t border-gray-100">
+              <div className="flex justify-between items-center">
+                <div className="min-w-0 flex-1 mr-4">
+                  <h2 className="text-lg font-black text-gray-900 truncate">{lesson.title}</h2>
+                  <div className="flex gap-3 mt-1 text-xs font-bold uppercase tracking-widest text-gray-400">
                     <span className="text-primary">{lesson.subjects?.title}</span>
                     <span>•</span>
                     <span>{lesson.grade_level}</span>
+                    {lesson.profiles?.full_name && (
+                      <>
+                        <span>•</span>
+                        <span className="text-gray-500 normal-case tracking-normal">{lesson.profiles.full_name}</span>
+                      </>
+                    )}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-shrink-0">
                   {isAuthenticated ? (
                     <>
                       <Button 
