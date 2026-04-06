@@ -213,18 +213,50 @@ export default function OrganizationPage() {
                 {classes.length === 0 ? (
                   <div className="glass-card rounded-3xl p-10 text-center text-gray-500">Chưa thiết lập Lớp học nào.</div>
                 ) : (
-                  GRADE_LEVELS.map(level => {
-                    const levelClasses = classes.filter(c => c.grade_level === level)
-                    if (levelClasses.length === 0) return null
-                    
-                    return (
-                      <div key={level} className="space-y-4">
-                        <h2 className="text-xl font-black text-gray-800 border-b-2 border-primary/20 pb-2 inline-block px-1">🏫 {level}</h2>
+                  <>
+                    {GRADE_LEVELS.map(level => {
+                      const levelClasses = classes.filter(c => c.grade_level === level)
+                      if (levelClasses.length === 0) return null
+                      
+                      return (
+                        <div key={level} className="space-y-4">
+                          <h2 className="text-xl font-black text-gray-800 border-b-2 border-primary/20 pb-2 inline-block px-1">🏫 {level}</h2>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {levelClasses.map(c => (
+                              <div key={c.id} className="glass-card rounded-3xl p-6 group transition-all duration-200 border-t-4 border-t-primary hover:shadow-xl hover:shadow-primary/10 bg-white/70">
+                                <div className="flex justify-between items-start mb-2">
+                                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{c.grade_level}</span>
+                                  <div className="flex gap-2">
+                                    <button onClick={() => { setEditingClass(c); setEditClassDialog(true); }} className="text-gray-300 hover:text-blue-500 transition-colors">
+                                      <Edit2 size={16} />
+                                    </button>
+                                    <button onClick={() => handleDeleteClass(c.id)} className="text-gray-300 hover:text-red-500 transition-colors">
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </div>
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-4">{c.name}</h3>
+                                <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl">
+                                  <Users size={16} className="text-primary" />
+                                  <span className="text-sm text-gray-600 font-medium">Giáo viên: {c.profiles?.full_name || 'Chưa phân công'}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+
+                    {/* DỮ LIỆU CŨ LỆCH CHUẨN */}
+                    {classes.filter(c => !GRADE_LEVELS.includes(c.grade_level)).length > 0 && (
+                      <div className="space-y-4 mt-12 p-6 bg-red-50/50 rounded-3xl border border-red-100 border-dashed">
+                        <h2 className="text-xl font-black text-red-600 pb-2 inline-block px-1">⚠️ Dữ liệu cũ (Cần cập nhật danh mục)</h2>
+                        <p className="text-sm text-gray-500 mb-4">Các lớp này được lưu bằng chuẩn phân loại cũ, vui lòng bấm Sửa và chọn lại nhóm Khối mới.</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {levelClasses.map(c => (
-                            <div key={c.id} className="glass-card rounded-3xl p-6 group transition-all duration-200 border-t-4 border-t-primary hover:shadow-xl hover:shadow-primary/10 bg-white/70">
+                          {classes.filter(c => !GRADE_LEVELS.includes(c.grade_level)).map(c => (
+                            <div key={c.id} className="glass-card rounded-3xl p-6 group transition-all duration-200 border-t-4 border-t-red-400 hover:shadow-xl hover:shadow-red-500/10 bg-white/70">
                               <div className="flex justify-between items-start mb-2">
-                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{c.grade_level}</span>
+                                <span className="text-xs font-bold text-red-400 uppercase tracking-widest">{c.grade_level}</span>
                                 <div className="flex gap-2">
                                   <button onClick={() => { setEditingClass(c); setEditClassDialog(true); }} className="text-gray-300 hover:text-blue-500 transition-colors">
                                     <Edit2 size={16} />
@@ -237,14 +269,14 @@ export default function OrganizationPage() {
                               <h3 className="text-xl font-bold text-gray-900 mb-4">{c.name}</h3>
                               <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl">
                                 <Users size={16} className="text-primary" />
-                                <span className="text-sm text-gray-600 font-medium">Giáo viên: {c.profiles?.full_name || 'Chưa phân công'}</span>
+                                <span className="text-sm text-gray-600 font-medium">Giáo viên: {c.profiles?.full_name || 'Chưa phân'}</span>
                               </div>
                             </div>
                           ))}
                         </div>
                       </div>
-                    )
-                  })
+                    )}
+                  </>
                 )}
               </div>
 
