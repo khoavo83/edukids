@@ -56,9 +56,9 @@ export default function LandingPage() {
   }
 
   const fetchData = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('lessons')
-      .select('*, subjects(title), profiles:teacher_id(full_name, avatar_url)')
+      .select('*, subjects(title), profiles(full_name, avatar_url)')
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
       .limit(20) // Lấy 20 bài mới nhất cho trang công khai

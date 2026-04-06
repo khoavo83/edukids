@@ -39,6 +39,15 @@ export default function LessonDetail({ lesson, isOpen, onClose }: LessonDetailPr
     }
   }, [isOpen, lesson])
 
+  const fetchComments = async () => {
+    const { data } = await supabase
+      .from('comments')
+      .select('*, profiles(full_name)')
+      .eq('lesson_id', lesson.id)
+      .order('created_at', { ascending: true })
+    if (data) setComments(data)
+  }
+
   const checkAuthStatus = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {

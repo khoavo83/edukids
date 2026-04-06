@@ -50,11 +50,12 @@ export default function LessonsPage() {
 
   const fetchLessons = async () => {
     setLoading(true)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('lessons')
-      .select('*, subjects(title), profiles:teacher_id(full_name, avatar_url)')
+      .select('*, subjects(title), profiles(full_name, avatar_url)')
       .order('created_at', { ascending: false })
       
+    if (error) console.error(error)
     if (data) {
       setLessons(data)
       const uniqueTeachers = Array.from(new Set(data.filter((l: any) => l.profiles).map((l: any) => l.profiles.full_name))) as string[]

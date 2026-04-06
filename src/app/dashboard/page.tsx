@@ -41,12 +41,13 @@ export default function HomePage() {
     const { data: subjectsData } = await supabase.from('subjects').select('*')
     if (subjectsData) setSubjects(subjectsData)
 
-    const { data: lessonsData } = await supabase
+    const { data: lessonsData, error } = await supabase
       .from('lessons')
-      .select('*, subjects(title), profiles:teacher_id(full_name, avatar_url)')
+      .select('*, subjects(title), profiles(full_name, avatar_url)')
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
     
+    if (error) console.error(error)
     if (lessonsData) setLessons(lessonsData)
     setLoading(false)
   }
