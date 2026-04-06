@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
-import { Plus, Edit2, Archive, Trash2, MoreVertical, BookOpen, Users, GraduationCap, ShieldAlert, LayoutTemplate } from 'lucide-react'
+import { Plus, Edit2, Archive, Trash2, MoreVertical, BookOpen, Users, GraduationCap, Layout } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -118,7 +118,7 @@ export default function OrganizationPage() {
           onClick={() => setActiveTab('classes')}
           className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 ${activeTab === 'classes' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
         >
-          <LayoutTemplate size={18} /> Danh sách Lớp
+          <Layout size={18} /> Danh sách Lớp
         </button>
         <button 
           onClick={() => setActiveTab('subjects')}
