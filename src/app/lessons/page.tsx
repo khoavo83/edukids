@@ -422,6 +422,7 @@ export default function LessonsPage() {
           </DialogContent>
         </Dialog>
       </div>
+      </div>
 
       {/* Thống kê nhanh */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
