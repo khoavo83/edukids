@@ -94,7 +94,7 @@ export default function MenusPage() {
         grid[day.value][meal] = null
       })
     })
-    menus.forEach(m => {
+    menus.forEach((m: any) => {
       if (grid[m.day_of_week]) {
         grid[m.day_of_week][m.meal_type] = m
       }
