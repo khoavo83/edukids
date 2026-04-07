@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
-import { User, Shield, GraduationCap, Users as UsersIcon, Trash2, Search, UserPlus, Mail } from 'lucide-react'
+import { User, Shield, GraduationCap, Users as UsersIcon, Trash2, Search, UserPlus, Mail, Crown, BookOpen } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,8 +19,12 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+const GRADE_LEVELS = ['Khối Nhà trẻ', 'Khối Mầm', 'Khối Chồi', 'Khối Lá']
+
 const roleMap: Record<string, { label: string; icon: any; color: string; bgColor: string }> = {
   admin: { label: 'Quản trị viên', icon: Shield, color: 'text-amber-600', bgColor: 'bg-amber-50 border-amber-200' },
+  bgh: { label: 'Ban Giám hiệu', icon: Crown, color: 'text-purple-600', bgColor: 'bg-purple-50 border-purple-200' },
+  to_truong: { label: 'Tổ trưởng', icon: BookOpen, color: 'text-teal-600', bgColor: 'bg-teal-50 border-teal-200' },
   teacher: { label: 'Giáo viên', icon: GraduationCap, color: 'text-blue-600', bgColor: 'bg-blue-50 border-blue-200' },
   parent: { label: 'Phụ huynh', icon: UsersIcon, color: 'text-green-600', bgColor: 'bg-green-50 border-green-200' },
 }
@@ -56,15 +60,32 @@ export default function UsersPage() {
   }
 
   const updateRole = async (id: string, newRole: string) => {
+    const updateData: any = { role: newRole }
+    // Nếu chuyển từ Tổ trưởng sang role khác, xóa managed_grade_level
+    if (newRole !== 'to_truong') {
+      updateData.managed_grade_level = null
+    }
+
     const { error } = await supabase
       .from('profiles')
-      .update({ role: newRole })
+      .update(updateData)
       .eq('id', id)
 
     if (!error) {
-      setUsers(users.map(u => u.id === id ? { ...u, role: newRole } : u))
+      setUsers(users.map(u => u.id === id ? { ...u, ...updateData } : u))
     } else {
       alert('Lỗi cập nhật vai trò: ' + error.message)
+    }
+  }
+
+  const updateGradeLevel = async (id: string, gradeLevel: string) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ managed_grade_level: gradeLevel })
+      .eq('id', id)
+
+    if (!error) {
+      setUsers(users.map(u => u.id === id ? { ...u, managed_grade_level: gradeLevel } : u))
     }
   }
 
@@ -129,6 +150,8 @@ export default function UsersPage() {
   const stats = {
     total: users.length,
     admin: users.filter(u => u.role === 'admin').length,
+    bgh: users.filter(u => u.role === 'bgh').length,
+    to_truong: users.filter(u => u.role === 'to_truong').length,
     teacher: users.filter(u => u.role === 'teacher').length,
     parent: users.filter(u => u.role === 'parent').length,
   }
@@ -141,20 +164,22 @@ export default function UsersPage() {
       </div>
 
       {/* Thống kê */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         {[
-          { label: 'Tổng thành viên', value: stats.total, icon: UsersIcon, color: 'from-primary to-blue-600', iconBg: 'bg-primary/10 text-primary' },
-          { label: 'Quản trị viên', value: stats.admin, icon: Shield, color: 'from-amber-500 to-orange-500', iconBg: 'bg-amber-50 text-amber-600' },
-          { label: 'Giáo viên', value: stats.teacher, icon: GraduationCap, color: 'from-blue-500 to-cyan-500', iconBg: 'bg-blue-50 text-blue-600' },
-          { label: 'Phụ huynh', value: stats.parent, icon: UsersIcon, color: 'from-green-500 to-emerald-500', iconBg: 'bg-green-50 text-green-600' },
+          { label: 'Tổng', value: stats.total, icon: UsersIcon, iconBg: 'bg-primary/10 text-primary' },
+          { label: 'Admin', value: stats.admin, icon: Shield, iconBg: 'bg-amber-50 text-amber-600' },
+          { label: 'BGH', value: stats.bgh, icon: Crown, iconBg: 'bg-purple-50 text-purple-600' },
+          { label: 'Tổ trưởng', value: stats.to_truong, icon: BookOpen, iconBg: 'bg-teal-50 text-teal-600' },
+          { label: 'Giáo viên', value: stats.teacher, icon: GraduationCap, iconBg: 'bg-blue-50 text-blue-600' },
+          { label: 'Phụ huynh', value: stats.parent, icon: UsersIcon, iconBg: 'bg-green-50 text-green-600' },
         ].map((stat) => (
-          <div key={stat.label} className="glass-card rounded-2xl p-5 flex items-center gap-4">
-            <div className={`w-12 h-12 ${stat.iconBg} rounded-xl flex items-center justify-center`}>
-              <stat.icon size={22} />
+          <div key={stat.label} className="glass-card rounded-2xl p-4 flex items-center gap-3">
+            <div className={`w-10 h-10 ${stat.iconBg} rounded-xl flex items-center justify-center`}>
+              <stat.icon size={20} />
             </div>
             <div>
-              <div className="text-2xl font-black text-gray-900">{stat.value}</div>
-              <div className="text-[11px] font-medium text-gray-500">{stat.label}</div>
+              <div className="text-xl font-black text-gray-900">{stat.value}</div>
+              <div className="text-[10px] font-medium text-gray-500">{stat.label}</div>
             </div>
           </div>
         ))}
@@ -178,6 +203,8 @@ export default function UsersPage() {
           <SelectContent>
             <SelectItem value="all">Tất cả vai trò</SelectItem>
             <SelectItem value="admin">Quản trị viên</SelectItem>
+            <SelectItem value="bgh">Ban Giám hiệu</SelectItem>
+            <SelectItem value="to_truong">Tổ trưởng</SelectItem>
             <SelectItem value="teacher">Giáo viên</SelectItem>
             <SelectItem value="parent">Phụ huynh</SelectItem>
           </SelectContent>
@@ -194,6 +221,7 @@ export default function UsersPage() {
             <TableRow>
               <TableHead className="font-bold">Thành viên</TableHead>
               <TableHead className="font-bold">Vai trò</TableHead>
+              <TableHead className="font-bold">Khối phụ trách</TableHead>
               <TableHead className="font-bold">Ngày tham gia</TableHead>
               <TableHead className="text-right font-bold">Thao tác</TableHead>
             </TableRow>
@@ -201,11 +229,11 @@ export default function UsersPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-10 text-gray-400">Đang tải danh sách thành viên...</TableCell>
+                <TableCell colSpan={5} className="text-center py-10 text-gray-400">Đang tải danh sách thành viên...</TableCell>
               </TableRow>
             ) : filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-10 font-medium text-gray-500">
+                <TableCell colSpan={5} className="text-center py-10 font-medium text-gray-500">
                   {searchQuery || filterRole !== 'all' ? 'Không tìm thấy thành viên phù hợp.' : 'Chưa có thành viên nào.'}
                 </TableCell>
               </TableRow>
@@ -249,6 +277,12 @@ export default function UsersPage() {
                           <SelectItem value="admin">
                             <div className="flex items-center gap-2"><Shield size={14} className="text-amber-500" /> Quản trị viên</div>
                           </SelectItem>
+                          <SelectItem value="bgh">
+                            <div className="flex items-center gap-2"><Crown size={14} className="text-purple-500" /> Ban Giám hiệu</div>
+                          </SelectItem>
+                          <SelectItem value="to_truong">
+                            <div className="flex items-center gap-2"><BookOpen size={14} className="text-teal-500" /> Tổ trưởng</div>
+                          </SelectItem>
                           <SelectItem value="teacher">
                             <div className="flex items-center gap-2"><GraduationCap size={14} className="text-blue-500" /> Giáo viên</div>
                           </SelectItem>
@@ -257,6 +291,25 @@ export default function UsersPage() {
                           </SelectItem>
                         </SelectContent>
                       </Select>
+                    </TableCell>
+                    <TableCell>
+                      {profile.role === 'to_truong' ? (
+                        <Select
+                          value={profile.managed_grade_level || ''}
+                          onValueChange={(val) => updateGradeLevel(profile.id, val)}
+                        >
+                          <SelectTrigger className="w-[150px] rounded-xl h-8 text-xs font-semibold border border-teal-200 bg-teal-50 text-teal-700">
+                            <SelectValue placeholder="Chọn khối..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {GRADE_LEVELS.map(gl => (
+                              <SelectItem key={gl} value={gl}>{gl}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className="text-xs text-gray-300">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-gray-500 text-sm">
                       {new Date(profile.created_at).toLocaleDateString('vi-VN')}
@@ -326,6 +379,8 @@ export default function UsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Quản trị viên</SelectItem>
+                  <SelectItem value="bgh">Ban Giám hiệu</SelectItem>
+                  <SelectItem value="to_truong">Tổ trưởng</SelectItem>
                   <SelectItem value="teacher">Giáo viên</SelectItem>
                   <SelectItem value="parent">Phụ huynh</SelectItem>
                 </SelectContent>

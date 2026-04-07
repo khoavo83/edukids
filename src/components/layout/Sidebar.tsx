@@ -12,30 +12,46 @@ import {
   Archive,
   LogOut,
   Layout,
-  Globe
+  Globe,
+  UserCircle,
+  UtensilsCrossed,
+  Camera,
+  CalendarDays,
+  ContactRound
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/utils/supabase/client'
+import { useAuth } from '@/hooks/useAuth'
 
+// Định nghĩa menu items với phân quyền tối thiểu
 const sidebarItems = [
-  { name: 'Bảng điều khiển', icon: Home, href: '/dashboard' },
-  { name: 'Thư viện bài học', icon: Library, href: '/lessons' },
-  { name: 'Tổ chức Trường', icon: Archive, href: '/organization' },
-  { name: 'Phê duyệt bài', icon: CheckCircle, href: '/review' },
-  { name: 'Người dùng', icon: Users, href: '/users' },
-  { name: 'Cài đặt trường', icon: Settings, href: '/settings' },
+  { name: 'Bảng điều khiển', icon: Home, href: '/dashboard', minRole: 'teacher' },
+  { name: 'Thư viện bài học', icon: Library, href: '/lessons', minRole: 'teacher' },
+  { name: 'Hồ sơ Bé / Học sinh', icon: ContactRound, href: '/students', minRole: 'teacher' },
+  { name: 'Tổ chức Trường', icon: Archive, href: '/organization', minRole: 'bgh' },
+  { name: 'Thực đơn', icon: UtensilsCrossed, href: '/menus', minRole: 'bgh' },
+  { name: 'Sự kiện', icon: CalendarDays, href: '/events', minRole: 'bgh' },
+  { name: 'Thư viện Ảnh', icon: Camera, href: '/gallery', minRole: 'bgh' },
+  { name: 'Phê duyệt bài', icon: CheckCircle, href: '/review', minRole: 'to_truong' },
+  { name: 'Người dùng', icon: Users, href: '/users', minRole: 'admin' },
+  { name: 'Hồ sơ cá nhân', icon: UserCircle, href: '/profile', minRole: 'teacher' },
+  { name: 'Cài đặt trường', icon: Settings, href: '/settings', minRole: 'admin' },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const { user, hasRoleAbove } = useAuth()
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
   }
+
+  // Lọc menu dựa trên phân quyền
+  const visibleItems = sidebarItems.filter(item => hasRoleAbove(item.minRole))
 
   return (
     <div className="w-64 h-screen bg-white border-r border-gray-100 flex flex-col fixed left-0 top-0 z-50">
@@ -49,7 +65,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 px-4 py-4 space-y-1">
-        {sidebarItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = pathname === item.href
           
           return (
@@ -94,3 +110,4 @@ export default function Sidebar() {
     </div>
   )
 }
+

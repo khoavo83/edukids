@@ -1,12 +1,22 @@
+-- =============================================
+-- EduKids Database Schema (Updated: Phase 1)
+-- =============================================
+
 -- 1. Create custom types for enum
-CREATE TYPE user_role AS ENUM ('admin', 'teacher', 'parent');
+-- 5 vai trò: admin (Super Admin), bgh (Ban Giám hiệu), to_truong (Tổ trưởng), teacher (Giáo viên), parent (Phụ huynh)
+CREATE TYPE user_role AS ENUM ('admin', 'bgh', 'to_truong', 'teacher', 'parent');
 CREATE TYPE lesson_status AS ENUM ('pending', 'approved', 'rejected');
 
 -- 2. Profiles table (linked to auth.users)
 CREATE TABLE profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   full_name TEXT NOT NULL,
+  nickname TEXT,
+  gender TEXT,
+  dob DATE,
+  phone TEXT,
   role user_role DEFAULT 'parent',
+  managed_grade_level TEXT, -- Dành cho Tổ trưởng: khối lớp phụ trách (Khối Nhà trẻ, Khối Mầm, Khối Chồi, Khối Lá)
   avatar_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -89,7 +99,6 @@ ALTER TABLE lessons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE school_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
 
@@ -101,6 +110,10 @@ CREATE POLICY "Allow authenticated users to update settings" ON school_settings 
 -- Profiles
 CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+-- Cho phép cấp trên sửa hồ sơ cấp dưới
+CREATE POLICY "Admins can update all profiles" ON profiles FOR UPDATE USING (
+  (SELECT role FROM profiles WHERE id = auth.uid()) IN ('admin', 'bgh')
+);
 
 -- Subjects
 CREATE POLICY "Subjects viewable by everyone" ON subjects FOR SELECT USING (true);
@@ -113,14 +126,22 @@ CREATE POLICY "Allow authenticated admin manage classes" ON classes FOR ALL USIN
 -- Lessons
 CREATE POLICY "Approved lessons viewable by everyone" ON lessons FOR SELECT USING (status = 'approved');
 CREATE POLICY "Teachers view own pending lessons" ON lessons FOR SELECT USING (teacher_id = auth.uid());
-CREATE POLICY "Admins view all lessons" ON lessons FOR SELECT USING (
-  (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+-- Admin, BGH, Tổ trưởng đều có quyền xem tất cả bài giảng
+CREATE POLICY "Staff view all lessons" ON lessons FOR SELECT USING (
+  (SELECT role FROM profiles WHERE id = auth.uid()) IN ('admin', 'bgh', 'to_truong')
 );
-CREATE POLICY "Teachers insert lessons" ON lessons FOR INSERT WITH CHECK (
-  (SELECT role FROM profiles WHERE id = auth.uid()) IN ('teacher', 'admin')
+-- Giáo viên, Tổ trưởng, BGH, Admin đều có thể upload bài giảng
+CREATE POLICY "Staff insert lessons" ON lessons FOR INSERT WITH CHECK (
+  (SELECT role FROM profiles WHERE id = auth.uid()) IN ('teacher', 'to_truong', 'bgh', 'admin')
 );
-CREATE POLICY "Admins update lessons" ON lessons FOR UPDATE USING (
-  (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+-- Admin và BGH có thể cập nhật/phê duyệt bài giảng
+CREATE POLICY "Management update lessons" ON lessons FOR UPDATE USING (
+  (SELECT role FROM profiles WHERE id = auth.uid()) IN ('admin', 'bgh')
+);
+-- Tổ trưởng có thể duyệt bài trong khối mình
+CREATE POLICY "ToTruong update lessons in grade" ON lessons FOR UPDATE USING (
+  (SELECT role FROM profiles WHERE id = auth.uid()) = 'to_truong'
+  AND grade_level = (SELECT managed_grade_level FROM profiles WHERE id = auth.uid())
 );
 
 -- Bookmarks
@@ -133,7 +154,7 @@ CREATE POLICY "Users can update own comments" ON comments FOR UPDATE USING (auth
 
 -- Activity Logs
 CREATE POLICY "Only admins view logs" ON activity_logs FOR SELECT USING (
-  (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+  (SELECT role FROM profiles WHERE id = auth.uid()) IN ('admin', 'bgh')
 );
 
 -- 11. Functions & Triggers

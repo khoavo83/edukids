@@ -9,13 +9,29 @@ import { Badge } from '@/components/ui/badge'
 import LessonDetail from '@/components/lessons/LessonDetail'
 import LessonCard from '@/components/lessons/LessonCard'
 
-const MOCK_MENU = [
-  { day: 'Thứ 2', meal: 'Cháo sườn non hạt sen, Sữa chua' },
-  { day: 'Thứ 3', meal: 'Cơm nát, Thịt bò sốt cà, Canh bí đỏ' },
-  { day: 'Thứ 4', meal: 'Súp cua măng tây, Bánh flan' },
-  { day: 'Thứ 5', meal: 'Cơm nát, Cá hồi sốt cam, Canh mồng tơi' },
-  { day: 'Thứ 6', meal: 'Phở bò mềm, Nước ép dưa hấu' },
+const DAYS = [
+  { value: 2, label: 'Thứ 2' },
+  { value: 3, label: 'Thứ 3' },
+  { value: 4, label: 'Thứ 4' },
+  { value: 5, label: 'Thứ 5' },
+  { value: 6, label: 'Thứ 6' },
+  { value: 7, label: 'Thứ 7' },
 ]
+
+const MEAL_LABELS: Record<string, string> = {
+  sang: 'Sáng',
+  trua: 'Trưa',
+  xe: 'Xế',
+  phu: 'Phụ'
+}
+
+function getWeekStart(date: Date): string {
+  const d = new Date(date)
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Adjust to Monday
+  d.setDate(diff)
+  return d.toISOString().split('T')[0]
+}
 
 const MOCK_EVENTS = [
   { id: 1, title: 'Bé vui hội trăng rằm', date: 'Trung thu 2026', image: 'https://images.unsplash.com/photo-1544928147-79a2dbc1f389?auto=format&fit=crop&q=80&w=400' },
@@ -35,6 +51,10 @@ const gradeLevels = ['Tất cả', 'Nhà trẻ', 'Mầm', 'Chồi', 'Lá']
 export default function LandingPage() {
   const supabase = createClient()
   const [lessons, setLessons] = useState<any[]>([])
+  const [menus, setMenus] = useState<any[]>([])
+  const [events, setEvents] = useState<any[]>([])
+  const [gallery, setGallery] = useState<any[]>([])
+  const [settings, setSettings] = useState<any>({})
   const [loading, setLoading] = useState(true)
   const [selectedLesson, setSelectedLesson] = useState<any>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
@@ -56,14 +76,47 @@ export default function LandingPage() {
   }
 
   const fetchData = async () => {
-    const { data, error } = await supabase
+    // Fetch Lessons
+    const { data: lessonData } = await supabase
       .from('lessons')
       .select('*, subjects(title), profiles(full_name, avatar_url)')
+      .is('deleted_at', null)
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
-      .limit(20) // Lấy 20 bài mới nhất cho trang công khai
+      .limit(20)
     
-    if (data) setLessons(data)
+    if (lessonData) setLessons(lessonData)
+
+    // Fetch Menus cho tuần này
+    const currentWeekInfo = getWeekStart(new Date())
+    const { data: menuData } = await supabase
+      .from('menus')
+      .select('*')
+      .eq('week_start_date', currentWeekInfo)
+      .order('day_of_week')
+      .order('meal_type')
+    
+    if (menuData) {
+      // Group by day_of_week
+      const grouped = DAYS.map(d => ({
+        day: d.label,
+        meals: menuData.filter((m: any) => m.day_of_week === d.value)
+      })).filter(g => g.meals.length > 0)
+      setMenus(grouped)
+    }
+
+    // Fetch Events
+    const { data: eventData } = await supabase.from('events').select('*').order('event_date', { ascending: false }).limit(3)
+    if (eventData) setEvents(eventData)
+
+    // Fetch Gallery
+    const { data: galleryData } = await supabase.from('gallery').select('*').order('created_at', { ascending: false }).limit(4)
+    if (galleryData) setGallery(galleryData)
+
+    // Fetch Settings (Contact footer)
+    const { data: settingData } = await supabase.from('school_settings').select('*').single()
+    if (settingData) setSettings(settingData)
+
     setLoading(false)
   }
 
@@ -131,12 +184,25 @@ export default function LandingPage() {
                 <h2 className="text-xl font-bold text-gray-900">Thực đơn tuần này</h2>
               </div>
               <div className="space-y-4">
-                {MOCK_MENU.map((item, idx) => (
-                  <div key={idx} className="flex gap-4 items-center bg-gray-50/50 p-4 rounded-2xl hover:bg-white transition-colors border border-transparent hover:border-gray-100">
-                    <div className="font-bold text-gray-700 w-16">{item.day}</div>
-                    <div className="flex-1 text-sm text-gray-600 leading-relaxed">{item.meal}</div>
+                {menus.length === 0 ? (
+                  <div className="text-center text-sm text-gray-500 py-8 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                    Chưa có thực đơn cho tuần này
                   </div>
-                ))}
+                ) : (
+                  menus.map((item, idx) => (
+                    <div key={idx} className="flex gap-4 items-start bg-gray-50/50 p-4 rounded-2xl hover:bg-white transition-colors border border-transparent hover:border-gray-100 shadow-sm hover:shadow">
+                      <div className="font-bold text-gray-700 w-16 pt-1">{item.day}</div>
+                      <div className="flex-1 space-y-2">
+                        {item.meals.map((m: any) => (
+                          <div key={m.id} className="text-sm border-l-2 border-primary/30 pl-3">
+                            <span className="font-bold text-primary mr-1">{MEAL_LABELS[m.meal_type] || m.meal_type}:</span> 
+                            <span className="text-gray-600 leading-relaxed break-words">{m.description}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -149,15 +215,21 @@ export default function LandingPage() {
                 <h2 className="text-xl font-bold text-gray-900">Sự kiện nổi bật</h2>
               </div>
               <div className="space-y-6">
-                {MOCK_EVENTS.map((event) => (
-                  <div key={event.id} className="group cursor-pointer">
-                    <div className="w-full h-32 rounded-2xl bg-gray-200 mb-3 overflow-hidden">
-                      <img src={event.image} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                {events.length === 0 ? (
+                   <div className="text-center text-sm text-gray-500 py-4 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                    Chưa có sự kiện nào
+                   </div>
+                ) : (
+                  events.map((event) => (
+                    <div key={event.id} className="group cursor-pointer">
+                      <div className="w-full h-32 rounded-2xl bg-gray-200 mb-3 overflow-hidden">
+                        <img src={event.cover_image} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      </div>
+                      <h3 className="font-bold text-gray-800 group-hover:text-primary transition-colors">{event.title}</h3>
+                      <p className="text-xs text-gray-500 mt-1 flex items-center gap-1"><Clock size={12}/> {new Date(event.event_date).toLocaleDateString('vi-VN')}</p>
                     </div>
-                    <h3 className="font-bold text-gray-800 group-hover:text-primary transition-colors">{event.title}</h3>
-                    <p className="text-xs text-gray-500 mt-1 flex items-center gap-1"><Clock size={12}/> {event.date}</p>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -176,12 +248,16 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {MOCK_GALLERY.map((img, idx) => (
-                  <div key={idx} className="aspect-square rounded-2xl overflow-hidden group relative">
-                    <img src={img} alt="School gallery" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                    <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                ))}
+                {gallery.length === 0 ? (
+                  <div className="col-span-full text-center text-sm text-gray-400">Chưa có hình ảnh.</div>
+                ) : (
+                  gallery.map((img) => (
+                    <div key={img.id} className="aspect-square rounded-2xl overflow-hidden group relative">
+                      <img src={img.image_url} alt={img.caption || 'School gallery'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                      <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -245,12 +321,28 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-100 py-10 mt-auto">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mx-auto mb-4">
-            <Layout size={20} />
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
+          <div>
+            <div className="flex items-center gap-2 justify-center md:justify-start mb-4">
+              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                <Layout size={20} />
+              </div>
+              <h4 className="font-bold text-gray-900 text-lg">{settings.school_name || 'EduKids Hoa Mai'}</h4>
+            </div>
+            <p className="text-sm text-gray-500">Hệ thống quản lý mầm non thông minh, đồng hành cùng bé phát triển toàn diện.</p>
           </div>
-          <h4 className="font-bold text-gray-900 mb-2">Hệ thống Quản lý EduKids</h4>
-          <p className="text-sm text-gray-500">© 2026 Bản quyền thuộc về EduKids Hoa Mai.</p>
+          <div className="text-sm text-gray-500 space-y-2">
+            <h4 className="font-bold text-gray-900 text-base mb-4">Liên hệ</h4>
+            <p>Hotline: {settings.contact_phone || 'Chưa cập nhật'}</p>
+            <p>Email: {settings.contact_email || 'Chưa cập nhật'}</p>
+          </div>
+          <div className="text-sm text-gray-500 space-y-2">
+            <h4 className="font-bold text-gray-900 text-base mb-4">Địa chỉ</h4>
+            <p>{settings.contact_address || 'Chưa cập nhật'}</p>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-6 mt-8 pt-8 border-t border-gray-100 text-center text-sm text-gray-400">
+          © 2026 Bản quyền thuộc về Hệ thống EduKids. Mọi quyền được bảo lưu.
         </div>
       </footer>
 

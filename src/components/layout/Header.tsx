@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from 'react'
-import { Bell, Search, User, LogOut, Settings as SettingsIcon, FileText, CheckCircle, XCircle, Info, Check } from 'lucide-react'
+import { Bell, Search, User, LogOut, Settings as SettingsIcon, FileText, CheckCircle, XCircle, Info, Check, KeyRound } from 'lucide-react'
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -11,9 +11,14 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import { useAuth, ROLE_LABELS } from '@/hooks/useAuth'
+import Link from 'next/link'
 
 // Hàm tính thời gian tương đối
 function timeAgo(dateStr: string): string {
@@ -44,37 +49,22 @@ function NotifIcon({ type }: { type: string }) {
 export default function Header() {
   const [notifications, setNotifications] = useState<any[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
-  const [userName, setUserName] = useState('Người dùng')
-  const [userRole, setUserRole] = useState('')
-  const [userId, setUserId] = useState<string | null>(null)
   const [activeToast, setActiveToast] = useState<any>(null)
   const supabase = createClient()
   const router = useRouter()
+  const { user } = useAuth()
 
-  // Lấy thông tin user + notifications ban đầu
+  // --- Đổi mật khẩu State ---
+  const [isPasswordOpen, setIsPasswordOpen] = useState(false)
+  const [passwordForm, setPasswordForm] = useState({ newPassword: '', confirmPassword: '' })
+  const [passwordLoading, setPasswordLoading] = useState(false)
+  const [passwordMsg, setPasswordMsg] = useState({ type: '', text: '' })
+
+  // Lấy thông báo ban đầu
   useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+    if (!user) return
 
-      setUserId(user.id)
-
-      // Profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, role')
-        .eq('id', user.id)
-        .single()
-      
-      if (profile) {
-        setUserName(profile.full_name || user.email || 'Người dùng')
-        setUserRole(profile.role === 'admin' ? 'Quản trị viên' : 
-                    profile.role === 'teacher' ? 'Giáo viên' : 'Phụ huynh')
-      } else {
-        setUserName(user.email || 'Người dùng')
-      }
-
-      // Fetch notifications
+    const fetchNotifs = async () => {
       const { data: notifs } = await supabase
         .from('notifications')
         .select('*')
@@ -87,12 +77,12 @@ export default function Header() {
         setUnreadCount(notifs.filter((n: any) => !n.is_read).length)
       }
     }
-    init()
-  }, [])
+    fetchNotifs()
+  }, [user])
 
   // Realtime subscription
   useEffect(() => {
-    if (!userId) return
+    if (!user) return
 
     const channel = supabase
       .channel('notifications-realtime')
@@ -102,7 +92,7 @@ export default function Header() {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${userId}`,
+          filter: `user_id=eq.${user.id}`,
         },
         (payload: any) => {
           const newNotif = payload.new
@@ -111,7 +101,7 @@ export default function Header() {
           
           // Hiển thị Toast
           setActiveToast(newNotif)
-          setTimeout(() => setActiveToast(null), 5000) // Tự tắt sau 5s
+          setTimeout(() => setActiveToast(null), 5000)
         }
       )
       .subscribe()
@@ -119,7 +109,7 @@ export default function Header() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [userId])
+  }, [user])
 
   // Đánh dấu 1 thông báo đã đọc
   const markAsRead = async (notifId: string) => {
@@ -130,8 +120,8 @@ export default function Header() {
 
   // Đánh dấu tất cả đã đọc
   const markAllAsRead = async () => {
-    if (!userId) return
-    await supabase.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false)
+    if (!user) return
+    await supabase.from('notifications').update({ is_read: true }).eq('user_id', user.id).eq('is_read', false)
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
     setUnreadCount(0)
   }
@@ -147,6 +137,35 @@ export default function Header() {
     router.push('/login')
     router.refresh()
   }
+
+  // --- Xử lý Đổi mật khẩu ---
+  const handleChangePassword = async () => {
+    setPasswordMsg({ type: '', text: '' })
+    
+    if (passwordForm.newPassword.length < 6) {
+      setPasswordMsg({ type: 'error', text: 'Mật khẩu mới phải có ít nhất 6 ký tự.' })
+      return
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordMsg({ type: 'error', text: 'Mật khẩu xác nhận không khớp.' })
+      return
+    }
+
+    setPasswordLoading(true)
+    const { error } = await supabase.auth.updateUser({ password: passwordForm.newPassword })
+    setPasswordLoading(false)
+
+    if (error) {
+      setPasswordMsg({ type: 'error', text: 'Lỗi: ' + error.message })
+    } else {
+      setPasswordMsg({ type: 'success', text: 'Đổi mật khẩu thành công!' })
+      setPasswordForm({ newPassword: '', confirmPassword: '' })
+      setTimeout(() => setIsPasswordOpen(false), 1500)
+    }
+  }
+
+  const userName = user?.fullName || 'Người dùng'
+  const userRole = ROLE_LABELS[user?.role || 'parent'] || 'Phụ huynh'
 
   return (
     <header className="h-20 bg-white/40 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-8 sticky top-0 z-40">
@@ -246,11 +265,16 @@ export default function Header() {
           <DropdownMenuContent className="w-56 rounded-2xl glass-card mr-4" align="end">
             <DropdownMenuLabel>Tài khoản của tôi</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="rounded-lg gap-2 cursor-pointer">
-              <User size={16} /> Hồ sơ cá nhân
-            </DropdownMenuItem>
-            <DropdownMenuItem className="rounded-lg gap-2 cursor-pointer">
-              <SettingsIcon size={16} /> Cài đặt thiết bị
+            <Link href="/profile">
+              <DropdownMenuItem className="rounded-lg gap-2 cursor-pointer">
+                <User size={16} /> Hồ sơ cá nhân
+              </DropdownMenuItem>
+            </Link>
+            <DropdownMenuItem 
+              className="rounded-lg gap-2 cursor-pointer"
+              onClick={() => { setIsPasswordOpen(true); setPasswordMsg({ type: '', text: '' }); setPasswordForm({ newPassword: '', confirmPassword: '' }) }}
+            >
+              <KeyRound size={16} /> Đổi mật khẩu
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
@@ -262,6 +286,57 @@ export default function Header() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* === DIALOG ĐỔI MẬT KHẨU === */}
+      <Dialog open={isPasswordOpen} onOpenChange={setIsPasswordOpen}>
+        <DialogContent className="rounded-3xl glass-card sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound size={20} className="text-primary" /> Đổi mật khẩu
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Mật khẩu mới *</Label>
+              <Input
+                type="password"
+                placeholder="Tối thiểu 6 ký tự"
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                className="rounded-xl h-11"
+                minLength={6}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Xác nhận mật khẩu mới *</Label>
+              <Input
+                type="password"
+                placeholder="Nhập lại mật khẩu mới"
+                value={passwordForm.confirmPassword}
+                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                className="rounded-xl h-11"
+              />
+            </div>
+
+            {passwordMsg.text && (
+              <div className={`px-4 py-3 rounded-xl text-sm font-medium ${
+                passwordMsg.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+              }`}>
+                {passwordMsg.text}
+              </div>
+            )}
+
+            <Button
+              onClick={handleChangePassword}
+              disabled={passwordLoading}
+              className="w-full rounded-xl h-12 font-bold gap-2 shadow-lg shadow-primary/20"
+            >
+              {passwordLoading ? <span className="animate-spin">⏳</span> : <KeyRound size={18} />}
+              {passwordLoading ? 'Đang cập nhật...' : 'Xác nhận đổi mật khẩu'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* === TOAST NOTIFICATION (POPUP) === */}
       {activeToast && (

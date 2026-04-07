@@ -14,7 +14,11 @@ import {
   Edit,
   Trash2,
   FileText,
-  Play
+  Play,
+  LayoutGrid,
+  Table2,
+  BarChart3,
+  Eye
 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -32,6 +36,15 @@ import LessonCard from '@/components/lessons/LessonCard'
 import LessonDetail from '@/components/lessons/LessonDetail'
 import { Badge } from '@/components/ui/badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { useAuth } from '@/hooks/useAuth'
 
 const gradeLevels = ['Tất cả', 'Nhà trẻ', 'Mầm', 'Chồi', 'Lá']
 
@@ -48,8 +61,11 @@ export default function LessonsPage() {
   const [filters, setFilters] = useState({
     search: '',
     grade: 'Tất cả',
-    teacher: 'Tất cả'
+    teacher: 'Tất cả',
+    status: 'Tất cả'
   })
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card')
+  const { user, hasRoleAbove } = useAuth()
   const [uploadData, setUploadData] = useState({
     title: '',
     subject_id: '',
@@ -84,6 +100,7 @@ export default function LessonsPage() {
     const { data, error } = await supabase
       .from('lessons')
       .select('*, subjects(title), profiles(full_name, avatar_url)')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
       
     if (error) console.error(error)
@@ -163,16 +180,8 @@ export default function LessonsPage() {
     
     // Tìm bài giảng để lấy file_url và xóa file trên Storage
     const lessonToDelete = lessons.find((l: any) => l.id === lessonId)
-    if (lessonToDelete?.file_url) {
-      // Lấy tên file từ URL
-      const urlParts = lessonToDelete.file_url.split('/')
-      const fileName = urlParts[urlParts.length - 1]
-      if (fileName) {
-        await supabase.storage.from('lessons').remove([fileName])
-      }
-    }
-    
-    const { error } = await supabase.from('lessons').delete().eq('id', lessonId);
+    // Soft delete thay vì hard delete
+    const { error } = await supabase.from('lessons').update({ deleted_at: new Date().toISOString() }).eq('id', lessonId);
     if (!error) {
        await fetchLessons();
     } else {
@@ -226,16 +235,55 @@ export default function LessonsPage() {
     const matchesSearch = lesson.title.toLowerCase().includes(filters.search.toLowerCase())
     const matchesGrade = filters.grade === 'Tất cả' || lesson.grade_level === filters.grade
     const matchesTeacher = filters.teacher === 'Tất cả' || lesson.profiles?.full_name === filters.teacher
-    return matchesSearch && matchesGrade && matchesTeacher
+    const matchesStatus = filters.status === 'Tất cả' || lesson.status === filters.status
+    return matchesSearch && matchesGrade && matchesTeacher && matchesStatus
   })
+
+  // Thống kê nhanh
+  const stats = {
+    total: lessons.length,
+    approved: lessons.filter(l => l.status === 'approved').length,
+    pending: lessons.filter(l => l.status === 'pending').length,
+    rejected: lessons.filter(l => l.status === 'rejected').length,
+  }
+
+  const statusMap: Record<string, { label: string; color: string; bg: string; icon: any }> = {
+    approved: { label: 'Đã duyệt', color: 'text-green-600', bg: 'bg-green-50', icon: CheckCircle },
+    pending: { label: 'Chờ duyệt', color: 'text-orange-600', bg: 'bg-orange-50', icon: Clock },
+    rejected: { label: 'Từ chối', color: 'text-red-600', bg: 'bg-red-50', icon: XCircle },
+  }
+
+  const fileTypeLabel = (type: string) => {
+    if (type === 'youtube') return 'YouTube'
+    if (type === 'link') return 'Liên kết'
+    return type?.toUpperCase() || '?'
+  }
 
   return (
     <MainLayout>
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Kho bài giảng</h1>
           <p className="text-gray-500">Quản lý và theo dõi trạng thái các bài giảng của giáo viên.</p>
         </div>
+        <div className="flex gap-3">
+          {/* Toggle View */}
+          <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+            <button 
+              onClick={() => setViewMode('card')} 
+              className={`p-2 rounded-lg transition-all ${viewMode === 'card' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Dạng thẻ"
+            >
+              <LayoutGrid size={18} />
+            </button>
+            <button 
+              onClick={() => setViewMode('table')} 
+              className={`p-2 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Dạng bảng"
+            >
+              <Table2 size={18} />
+            </button>
+          </div>
         
         <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
           <DialogTrigger asChild>
@@ -375,6 +423,26 @@ export default function LessonsPage() {
         </Dialog>
       </div>
 
+      {/* Thống kê nhanh */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {[
+          { label: 'Tổng bài giảng', value: stats.total, icon: BarChart3, iconBg: 'bg-primary/10 text-primary' },
+          { label: 'Đã duyệt', value: stats.approved, icon: CheckCircle, iconBg: 'bg-green-50 text-green-600' },
+          { label: 'Chờ duyệt', value: stats.pending, icon: Clock, iconBg: 'bg-orange-50 text-orange-600' },
+          { label: 'Từ chối', value: stats.rejected, icon: XCircle, iconBg: 'bg-red-50 text-red-600' },
+        ].map((stat) => (
+          <div key={stat.label} className="glass-card rounded-2xl p-4 flex items-center gap-3">
+            <div className={`w-10 h-10 ${stat.iconBg} rounded-xl flex items-center justify-center`}>
+              <stat.icon size={20} />
+            </div>
+            <div>
+              <div className="text-xl font-black text-gray-900">{stat.value}</div>
+              <div className="text-[10px] font-medium text-gray-500">{stat.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Bộ lọc đa tầng (Multi-level Filter) */}
       <div className="flex flex-col md:flex-row gap-4 mb-10 w-full">
         <div className="relative flex-1">
@@ -407,10 +475,24 @@ export default function LessonsPage() {
               {teachers.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
             </SelectContent>
           </Select>
+
+          <Select onValueChange={(val) => setFilters({...filters, status: val})}>
+            <SelectTrigger className="w-[160px] rounded-2xl bg-white border-gray-100 h-12 shadow-sm text-gray-600">
+              <Filter className="mr-2" size={16} />
+              <SelectValue placeholder="Trạng thái" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Tất cả">Tất cả trạng thái</SelectItem>
+              <SelectItem value="approved">Đã duyệt</SelectItem>
+              <SelectItem value="pending">Chờ duyệt</SelectItem>
+              <SelectItem value="rejected">Từ chối</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {/* Grid bài giảng */}
+      {/* === CHẾ ĐỘ CARD === */}
+      {viewMode === 'card' && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {loading ? (
           Array(4).fill(0).map((_, i) => (
@@ -477,6 +559,110 @@ export default function LessonsPage() {
           ))
         )}
       </div>
+      )}
+
+      {/* === CHẾ ĐỘ TABLE (DATA GRID) === */}
+      {viewMode === 'table' && (
+        <div className="glass-card rounded-3xl overflow-hidden shadow-sm shadow-primary/5">
+          <Table>
+            <TableHeader className="bg-gray-50/50">
+              <TableRow>
+                <TableHead className="font-bold w-[50px]">#</TableHead>
+                <TableHead className="font-bold">Tiêu đề</TableHead>
+                <TableHead className="font-bold">Giáo viên</TableHead>
+                <TableHead className="font-bold">Khối</TableHead>
+                <TableHead className="font-bold">Bộ môn</TableHead>
+                <TableHead className="font-bold">Định dạng</TableHead>
+                <TableHead className="font-bold">Ngày tạo</TableHead>
+                <TableHead className="font-bold">Trạng thái</TableHead>
+                <TableHead className="text-right font-bold">Thao tác</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-10 text-gray-400">Đang tải...</TableCell>
+                </TableRow>
+              ) : filteredLessons.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-10 text-gray-500">Không tìm thấy bài giảng nào.</TableCell>
+                </TableRow>
+              ) : (
+                filteredLessons.map((lesson, idx) => {
+                  const st = statusMap[lesson.status] || statusMap.pending
+                  const StIcon = st.icon
+                  return (
+                    <TableRow key={lesson.id} className="hover:bg-gray-50/50 transition-colors">
+                      <TableCell className="text-gray-400 text-xs font-mono">{idx + 1}</TableCell>
+                      <TableCell>
+                        <button 
+                          onClick={() => { setSelectedLesson(lesson); setIsDetailOpen(true) }}
+                          className="font-semibold text-gray-900 hover:text-primary transition-colors text-left line-clamp-1"
+                        >
+                          {lesson.title}
+                        </button>
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">{lesson.profiles?.full_name || '—'}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-[10px] rounded-full">{lesson.grade_level}</Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-600">{lesson.subjects?.title || '—'}</TableCell>
+                      <TableCell>
+                        <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded-lg uppercase">
+                          {fileTypeLabel(lesson.file_type)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-500">
+                        {new Date(lesson.created_at).toLocaleDateString('vi-VN')}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full ${st.bg} ${st.color}`}>
+                          <StIcon size={12} />
+                          {st.label}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
+                              <MoreVertical size={16} />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48 rounded-2xl glass-card">
+                            <DropdownMenuItem className="rounded-xl cursor-pointer" onClick={() => { setSelectedLesson(lesson); setIsDetailOpen(true) }}>
+                              <Eye className="mr-2 h-4 w-4 text-gray-500" /> Xem chi tiết
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="rounded-xl cursor-pointer" onClick={() => handleOpenEdit(lesson)}>
+                              <Edit className="mr-2 h-4 w-4 text-blue-500" /> Sửa thông tin
+                            </DropdownMenuItem>
+                            {lesson.status !== 'approved' && (
+                              <DropdownMenuItem className="rounded-xl cursor-pointer" onClick={() => handleUpdateStatus(lesson.id, 'approved')}>
+                                <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Phê duyệt
+                              </DropdownMenuItem>
+                            )}
+                            {lesson.status !== 'rejected' && (
+                              <DropdownMenuItem className="rounded-xl cursor-pointer" onClick={() => handleUpdateStatus(lesson.id, 'rejected')}>
+                                <XCircle className="mr-2 h-4 w-4 text-orange-500" /> Từ chối
+                              </DropdownMenuItem>
+                            )}
+                            <div className="h-px bg-gray-100 my-1" />
+                            <DropdownMenuItem className="rounded-xl cursor-pointer text-red-600 focus:text-red-600" onClick={() => handleDelete(lesson.id)}>
+                              <Trash2 className="mr-2 h-4 w-4" /> Xóa bài giảng
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
+            </TableBody>
+          </Table>
+          <div className="p-4 border-t border-gray-50 text-xs text-gray-400 text-right">
+            Hiển thị {filteredLessons.length} / {lessons.length} bài giảng
+          </div>
+        </div>
+      )}
 
       <LessonDetail 
         lesson={selectedLesson} 
