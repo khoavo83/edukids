@@ -60,35 +60,52 @@ ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gallery ENABLE ROW LEVEL SECURITY;
 
 -- Admins/BGH/Teacher có thể xem toàn bộ Học sinh
+DROP POLICY IF EXISTS "Staff view any student" ON students;
 CREATE POLICY "Staff view any student" ON students FOR SELECT USING (
   (SELECT role FROM profiles WHERE id = auth.uid()) IN ('admin', 'bgh', 'to_truong', 'teacher')
 );
+
 -- Phụ huynh chỉ xem con mình
+DROP POLICY IF EXISTS "Parents view own student" ON students;
 CREATE POLICY "Parents view own student" ON students FOR SELECT USING (
   parent_id = auth.uid()
 );
+
 -- Admin, BGH có thể thêm sửa xóa học sinh
+DROP POLICY IF EXISTS "Admins manage students" ON students;
 CREATE POLICY "Admins manage students" ON students USING (
   (SELECT role FROM profiles WHERE id = auth.uid()) IN ('admin', 'bgh')
 );
 
 -- Policy cho authorized_pickups (tương tự students)
+DROP POLICY IF EXISTS "Staff view pickups" ON authorized_pickups;
 CREATE POLICY "Staff view pickups" ON authorized_pickups FOR SELECT USING (
   (SELECT role FROM profiles WHERE id = auth.uid()) IN ('admin', 'bgh', 'to_truong', 'teacher')
 );
+
+DROP POLICY IF EXISTS "Parents view own pickups" ON authorized_pickups;
 CREATE POLICY "Parents view own pickups" ON authorized_pickups FOR SELECT USING (
   student_id IN (SELECT id FROM students WHERE parent_id = auth.uid())
 );
+
+DROP POLICY IF EXISTS "Admins manage pickups" ON authorized_pickups;
 CREATE POLICY "Admins manage pickups" ON authorized_pickups USING (
   (SELECT role FROM profiles WHERE id = auth.uid()) IN ('admin', 'bgh')
 );
 
 -- Policy cho Events & Gallery (Public view, Admin manage)
+DROP POLICY IF EXISTS "Anyone views events" ON events;
 CREATE POLICY "Anyone views events" ON events FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Admins manage events" ON events;
 CREATE POLICY "Admins manage events" ON events USING (
   (SELECT role FROM profiles WHERE id = auth.uid()) IN ('admin', 'bgh')
 );
+
+DROP POLICY IF EXISTS "Anyone views gallery" ON gallery;
 CREATE POLICY "Anyone views gallery" ON gallery FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Admins manage gallery" ON gallery;
 CREATE POLICY "Admins manage gallery" ON gallery USING (
   (SELECT role FROM profiles WHERE id = auth.uid()) IN ('admin', 'bgh')
 );
