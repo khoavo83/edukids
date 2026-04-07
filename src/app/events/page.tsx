@@ -68,7 +68,7 @@ export default function EventsPage() {
         ) : events.length === 0 ? (
           <div className="col-span-full py-10 text-center text-gray-400 glass-card">Không có sự kiện nào.</div>
         ) : (
-          events.map(e => (
+          events.map((e: any) => (
             <div key={e.id} className="glass-card rounded-2xl overflow-hidden group relative">
               <div className="h-32 bg-gray-200 uppercase flex items-center justify-center text-xs overflow-hidden">
                 {e.cover_image ? <img src={e.cover_image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" /> : 'Chưa có ảnh'}

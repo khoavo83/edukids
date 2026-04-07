@@ -71,7 +71,7 @@ export default function StudentsPage() {
         ) : filtered.length === 0 ? (
           <div className="col-span-full py-10 text-center text-gray-400 glass-card">Không có dữ liệu học sinh.</div>
         ) : (
-          filtered.map(s => (
+          filtered.map((s: any) => (
             <div key={s.id} className="glass-card rounded-2xl p-6 hover:shadow-md transition-shadow relative group">
               <h3 className="font-bold text-lg text-gray-900">{s.full_name} {s.nickname && <span className="text-sm text-gray-400 font-normal">({s.nickname})</span>}</h3>
               <p className="text-sm text-gray-500 mt-2 flex items-center gap-2">

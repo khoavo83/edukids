@@ -220,7 +220,7 @@ export default function LandingPage() {
                     Chưa có sự kiện nào
                    </div>
                 ) : (
-                  events.map((event) => (
+                  events.map((event: any) => (
                     <div key={event.id} className="group cursor-pointer">
                       <div className="w-full h-32 rounded-2xl bg-gray-200 mb-3 overflow-hidden">
                         <img src={event.cover_image} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -251,7 +251,7 @@ export default function LandingPage() {
                 {gallery.length === 0 ? (
                   <div className="col-span-full text-center text-sm text-gray-400">Chưa có hình ảnh.</div>
                 ) : (
-                  gallery.map((img) => (
+                  gallery.map((img: any) => (
                     <div key={img.id} className="aspect-square rounded-2xl overflow-hidden group relative">
                       <img src={img.image_url} alt={img.caption || 'School gallery'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                       <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />

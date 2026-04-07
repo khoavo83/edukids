@@ -17,7 +17,7 @@ import {
   UtensilsCrossed,
   Camera,
   CalendarDays,
-  ContactRound
+  Contact
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/utils/supabase/client'
@@ -27,7 +27,7 @@ import { useAuth } from '@/hooks/useAuth'
 const sidebarItems = [
   { name: 'Bảng điều khiển', icon: Home, href: '/dashboard', minRole: 'teacher' },
   { name: 'Thư viện bài học', icon: Library, href: '/lessons', minRole: 'teacher' },
-  { name: 'Hồ sơ Bé / Học sinh', icon: ContactRound, href: '/students', minRole: 'teacher' },
+  { name: 'Hồ sơ Bé / Học sinh', icon: Contact, href: '/students', minRole: 'teacher' },
   { name: 'Tổ chức Trường', icon: Archive, href: '/organization', minRole: 'bgh' },
   { name: 'Thực đơn', icon: UtensilsCrossed, href: '/menus', minRole: 'bgh' },
   { name: 'Sự kiện', icon: CalendarDays, href: '/events', minRole: 'bgh' },
