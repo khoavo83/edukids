@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
 import { createClient } from '@/utils/supabase/client'
+import { getDirectImageUrl } from '@/lib/utils'
 import { Plus, Camera, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -68,7 +69,7 @@ export default function GalleryPage() {
         ) : (
           photos.map((p: any) => (
             <div key={p.id} className="aspect-square rounded-2xl overflow-hidden group relative bg-gray-100">
-              <img src={p.image_url} alt={p.caption} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+              <img src={getDirectImageUrl(p.image_url)} alt={p.caption} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                 <p className="text-white text-xs line-clamp-2">{p.caption || 'Không có chú thích'}</p>
               </div>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Layout, LogIn, Play, FileText, ImageIcon, Clock, BookOpen, Utensils, Calendar, Camera } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
+import { getDirectImageUrl } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import LessonDetail from '@/components/lessons/LessonDetail'
@@ -223,7 +224,7 @@ export default function LandingPage() {
                   events.map((event: any) => (
                     <div key={event.id} className="group cursor-pointer">
                       <div className="w-full h-32 rounded-2xl bg-gray-200 mb-3 overflow-hidden">
-                        <img src={event.cover_image} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <img src={getDirectImageUrl(event.cover_image)} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       </div>
                       <h3 className="font-bold text-gray-800 group-hover:text-primary transition-colors">{event.title}</h3>
                       <p className="text-xs text-gray-500 mt-1 flex items-center gap-1"><Clock size={12}/> {new Date(event.event_date).toLocaleDateString('vi-VN')}</p>
@@ -253,7 +254,7 @@ export default function LandingPage() {
                 ) : (
                   gallery.map((img: any) => (
                     <div key={img.id} className="aspect-square rounded-2xl overflow-hidden group relative">
-                      <img src={img.image_url} alt={img.caption || 'School gallery'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                      <img src={getDirectImageUrl(img.image_url)} alt={img.caption || 'School gallery'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                       <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   ))

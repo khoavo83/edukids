@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
 import { createClient } from '@/utils/supabase/client'
+import { getDirectImageUrl } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -239,7 +240,7 @@ export default function MenusPage() {
                         <p className="text-xs text-gray-700 leading-relaxed line-clamp-3">{item.description}</p>
                         {item.image_url && (
                           <div className="mt-2">
-                            <img src={item.image_url} alt="" className="w-full h-12 object-cover rounded-lg" />
+                            <img src={getDirectImageUrl(item.image_url)} alt="" className="w-full h-12 object-cover rounded-lg" />
                           </div>
                         )}
                         {canEdit && (
