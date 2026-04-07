@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
 import { createClient } from '@/utils/supabase/client'
+import { getDirectImageUrl } from '@/lib/utils'
 import { Plus, CalendarDays, Trash2, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,7 +72,7 @@ export default function EventsPage() {
           events.map((e: any) => (
             <div key={e.id} className="glass-card rounded-2xl overflow-hidden group relative">
               <div className="h-32 bg-gray-200 uppercase flex items-center justify-center text-xs overflow-hidden">
-                {e.cover_image ? <img src={e.cover_image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" /> : 'Chưa có ảnh'}
+                {e.cover_image ? <img src={getDirectImageUrl(e.cover_image)} className="w-full h-full object-cover group-hover:scale-110 transition-transform" /> : 'Chưa có ảnh'}
               </div>
               <div className="p-4">
                 <h3 className="font-bold text-gray-900 line-clamp-1">{e.title}</h3>

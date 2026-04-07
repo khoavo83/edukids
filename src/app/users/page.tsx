@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
 import { User, Shield, GraduationCap, Users as UsersIcon, Trash2, Search, UserPlus, Mail, Crown, BookOpen } from 'lucide-react'
+import { useAuth, RoleDefinition, ROLE_HIERARCHY } from '@/hooks/useAuth'
+import { getDirectImageUrl } from '@/lib/utils'
 import { createClient } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -248,7 +250,7 @@ export default function UsersPage() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-xs overflow-hidden">
                           {profile.avatar_url ? (
-                            <img src={profile.avatar_url} className="w-full h-full object-cover" alt="" />
+                            <img src={getDirectImageUrl(profile.avatar_url)} className="w-full h-full object-cover" alt="" />
                           ) : (
                             getInitials(profile.full_name || '')
                           )}

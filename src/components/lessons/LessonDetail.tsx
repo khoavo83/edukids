@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
+import { getDirectImageUrl } from '@/lib/utils'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -156,7 +157,7 @@ export default function LessonDetail({ lesson, isOpen, onClose }: LessonDetailPr
               {fileCategory === 'image' && (
                 <div className="w-full h-full flex items-center justify-center p-4 bg-gray-900">
                   <img 
-                    src={lesson.file_url} 
+                    src={getDirectImageUrl(lesson.file_url)} 
                     alt={lesson.title}
                     className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                   />

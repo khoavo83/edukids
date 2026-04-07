@@ -2,6 +2,7 @@
 
 import { useState, useEffect, createContext, useContext } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import { getDirectImageUrl } from '@/lib/utils'
 
 // Định nghĩa thứ tự phân cấp: Giá trị cao hơn = quyền cao hơn
 const ROLE_HIERARCHY: Record<string, number> = {
@@ -77,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: authUser.email || '',
       fullName: profile?.full_name || authUser.email || 'Người dùng',
       role: profile?.role || 'parent',
-      avatarUrl: profile?.avatar_url || null,
+      avatarUrl: profile?.avatar_url ? getDirectImageUrl(profile.avatar_url) : null,
       managedGradeLevel: profile?.managed_grade_level || null,
     })
     setLoading(false)

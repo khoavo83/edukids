@@ -257,8 +257,12 @@ export default function Header() {
                 <div className="text-sm font-bold text-gray-900 group-hover:text-primary transition-colors">{userName}</div>
                 <div className="text-[10px] text-gray-400 font-medium">{userRole}</div>
               </div>
-              <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center font-bold shadow-sm shadow-primary/10">
-                {userName.charAt(0).toUpperCase()}
+              <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center font-bold shadow-sm shadow-primary/10 overflow-hidden">
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} className="w-full h-full object-cover" alt="avatar" />
+                ) : (
+                  userName.charAt(0).toUpperCase()
+                )}
               </div>
             </div>
           </DropdownMenuTrigger>

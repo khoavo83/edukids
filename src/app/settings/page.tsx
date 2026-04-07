@@ -6,6 +6,7 @@ import { Save, School, Palette, Image as ImageIcon, Globe, Trash2 } from 'lucide
 import { createClient } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { getDirectImageUrl } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
 
 export default function SettingsPage() {
@@ -154,7 +155,7 @@ export default function SettingsPage() {
                   <input type="file" accept="image/png, image/jpeg, image/webp" className="hidden" onChange={(e) => handleFileUpload(e, 'logo_url')} />
                   {settings.logo_url ? (
                     <>
-                      <img src={settings.logo_url} alt="Logo preview" className="absolute inset-0 w-full h-full object-contain p-6" />
+                      <img src={getDirectImageUrl(settings.logo_url)} alt="Logo preview" className="absolute inset-0 w-full h-full object-contain p-6" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <span className="text-white text-sm font-bold bg-black/30 px-4 py-2 rounded-xl backdrop-blur-md">Thay đổi ảnh</span>
                       </div>
@@ -181,7 +182,7 @@ export default function SettingsPage() {
                   <input type="file" accept="image/png, image/x-icon, image/ico, image/jpeg" className="hidden" onChange={(e) => handleFileUpload(e, 'favicon_url')} />
                   {settings.favicon_url ? (
                     <>
-                      <img src={settings.favicon_url} alt="Favicon preview" className="absolute inset-0 w-full h-full object-contain p-8" />
+                      <img src={getDirectImageUrl(settings.favicon_url)} alt="Favicon preview" className="absolute inset-0 w-full h-full object-contain p-8" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <span className="text-white text-sm font-bold bg-black/30 px-4 py-2 rounded-xl backdrop-blur-md">Thay đổi ảnh</span>
                       </div>

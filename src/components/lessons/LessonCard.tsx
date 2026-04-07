@@ -1,6 +1,7 @@
 import React from 'react'
 import { Play, FileText, ImageIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { getDirectImageUrl } from '@/lib/utils'
 
 interface LessonCardProps {
   lesson: any
@@ -50,7 +51,7 @@ export default function LessonCard({ lesson, onClick }: LessonCardProps) {
           />
         ) : isImage ? (
           <img 
-            src={lesson.file_url} 
+            src={getDirectImageUrl(lesson.file_url)} 
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
             alt={lesson.title}
           />
@@ -87,7 +88,7 @@ export default function LessonCard({ lesson, onClick }: LessonCardProps) {
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black tracking-tighter overflow-hidden ring-2 ring-white shadow-sm shrink-0">
                {lesson.profiles?.avatar_url ? (
-                 <img src={lesson.profiles.avatar_url} className="w-full h-full object-cover" alt="avatar" />
+                 <img src={getDirectImageUrl(lesson.profiles.avatar_url)} className="w-full h-full object-cover" alt="avatar" />
                ) : (
                  getInitials(lesson.profiles?.full_name || 'Admin')
                )}

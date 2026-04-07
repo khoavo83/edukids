@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { Trophy, Medal, Calendar } from 'lucide-react'
+import { getDirectImageUrl } from '@/lib/utils'
 
 type Period = 'week' | 'month' | 'quarter' | 'year' | 'all'
 
@@ -150,7 +151,7 @@ export default function TeacherStats({ lessons }: TeacherStatsProps) {
                   'ring-white bg-primary/10 text-primary'
                 }`}>
                   {teacher.avatar ? (
-                    <img src={teacher.avatar} className="w-full h-full object-cover" alt="avatar" />
+                    <img src={getDirectImageUrl(teacher.avatar)} className="w-full h-full object-cover" alt="avatar" />
                   ) : (
                     getInitials(teacher.name)
                   )}

@@ -166,8 +166,12 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Cột trái: Avatar + Tổng quan */}
         <div className="glass-card rounded-3xl p-8 text-center flex flex-col items-center gap-4 h-fit">
-          <div className="w-24 h-24 bg-primary/10 text-primary rounded-2xl flex items-center justify-center text-4xl font-black shadow-lg shadow-primary/10">
-            {form.full_name?.charAt(0)?.toUpperCase() || '?'}
+          <div className="w-24 h-24 bg-primary/10 text-primary rounded-2xl flex items-center justify-center text-4xl font-black shadow-lg shadow-primary/10 overflow-hidden">
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} className="w-full h-full object-cover" alt="avatar" />
+            ) : (
+              form.full_name?.charAt(0)?.toUpperCase() || '?'
+            )}
           </div>
           <div>
             <h2 className="text-xl font-bold text-gray-900">{form.full_name || 'Chưa có tên'}</h2>
