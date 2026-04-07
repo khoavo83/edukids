@@ -11,11 +11,11 @@ export function getDirectImageUrl(url: string | null | undefined): string {
   
   // Nếu là format: drive.google.com/open?id=MAX_ID
   let match = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
-  if (match) return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+  if (match) return `https://lh3.googleusercontent.com/d/${match[1]}=w1000`;
   
   // Nếu là format: drive.google.com/file/d/MAX_ID/view
   match = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (match) return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+  if (match) return `https://lh3.googleusercontent.com/d/${match[1]}=w1000`;
 
   return url;
 }
