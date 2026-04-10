@@ -265,10 +265,10 @@ export default function LessonDetail({ lesson, isOpen, onClose }: LessonDetailPr
               )}
             </div>
             
-            {/* Bottom area - Scrollable to fit more info if needed */}
-            <ScrollArea className="h-48 md:h-64 bg-white/95 backdrop-blur-sm border-t border-gray-100">
-              <div className="p-5">
-                <div className="flex justify-between items-start mb-6">
+            {/* Bottom area - Đã thu gọn cực đại để tối ưu không gian hiển thị tài liệu */}
+            <ScrollArea className="h-32 md:h-36 bg-white/95 backdrop-blur-sm border-t border-gray-100 shrink-0">
+              <div className="px-5 py-4">
+                <div className="flex justify-between items-center gap-4">
                   <div className="min-w-0 flex-1 mr-4">
                     <h2 className="text-xl font-black text-gray-900 leading-tight">{lesson.title}</h2>
                     <div className="flex items-center gap-3 mt-1 font-bold uppercase tracking-widest">
