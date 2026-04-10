@@ -10,11 +10,15 @@ import {
   Play, 
   Download,
   Clock,
-  BookOpen
+  BookOpen,
+  Star,
+  ChevronRight,
+  ChevronLeft
 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
-import { getDirectImageUrl } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import { getDirectImageUrl, cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -32,13 +36,65 @@ export default function LessonDetail({ lesson, isOpen, onClose }: LessonDetailPr
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [loading, setLoading] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isChatOpen, setIsChatOpen] = useState(false)
+  const [ratingStats, setRatingStats] = useState({ avg: 0, total: 0, counts: [0, 0, 0, 0, 0] })
+  const [userRating, setUserRating] = useState<number | null>(null)
 
   useEffect(() => {
     if (isOpen && lesson) {
       fetchComments()
       checkAuthStatus()
+      fetchRatingStats()
     }
   }, [isOpen, lesson])
+
+  const fetchRatingStats = async () => {
+    const { data: allRatings } = await supabase
+      .from('ratings')
+      .select('rating')
+      .eq('lesson_id', lesson.id)
+
+    if (allRatings && allRatings.length > 0) {
+      const total = allRatings.length
+      const sum = allRatings.reduce((acc, r) => acc + r.rating, 0)
+      const counts = [0, 0, 0, 0, 0]
+      allRatings.forEach(r => {
+        if (r.rating >= 1 && r.rating <= 5) counts[5 - r.rating]++
+      })
+      setRatingStats({ avg: Number((sum / total).toFixed(1)), total, counts })
+    } else {
+      setRatingStats({ avg: 0, total: 0, counts: [0, 0, 0, 0, 0] })
+    }
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: myRating } = await supabase
+        .from('ratings')
+        .select('rating')
+        .eq('lesson_id', lesson.id)
+        .eq('user_id', user.id)
+        .single()
+      if (myRating) setUserRating(myRating.rating)
+    }
+  }
+
+  const rateLesson = async (rating: number) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { error } = await supabase
+      .from('ratings')
+      .upsert({ 
+        lesson_id: lesson.id, 
+        user_id: user.id, 
+        rating 
+      }, { onConflict: 'lesson_id,user_id' })
+
+    if (!error) {
+      setUserRating(rating)
+      fetchRatingStats()
+    }
+  }
 
   const fetchComments = async () => {
     const { data } = await supabase
@@ -123,10 +179,21 @@ export default function LessonDetail({ lesson, isOpen, onClose }: LessonDetailPr
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-7xl w-[95vw] h-[92vh] p-0 overflow-hidden flex flex-col rounded-3xl glass-card border-0 shadow-2xl">
-        <div className="flex flex-1 overflow-hidden">
-          {/* Left Side: Lesson Content - Chiếm phần lớn */}
-          <div className="flex-[2] bg-gray-950 flex flex-col">
-            <div className="flex-1 flex items-center justify-center overflow-hidden relative">
+        <div className="flex flex-1 overflow-hidden relative">
+          {/* Left Side: Lesson Content - Tự động giãn nở */}
+          <div className="flex-1 bg-gray-950 flex flex-col transition-all duration-300 overflow-hidden">
+            <div className="flex-1 flex items-center justify-center overflow-hidden relative group">
+              {/* Nút Toggle Trao đổi khi đang đóng */}
+              {!isChatOpen && (
+                <Button 
+                  size="icon" 
+                  variant="secondary" 
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-30 rounded-full shadow-xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white w-10 h-20 transition-all hover:scale-105"
+                  onClick={() => setIsChatOpen(true)}
+                >
+                  <ChevronLeft size={24} />
+                </Button>
+              )}
               {fileCategory === 'youtube' && (
                 <iframe
                   src={`https://www.youtube.com/embed/${getYouTubeId(lesson.file_url)}?autoplay=1`}
@@ -198,53 +265,136 @@ export default function LessonDetail({ lesson, isOpen, onClose }: LessonDetailPr
               )}
             </div>
             
-            {/* Bottom bar - Thông tin bài giảng */}
-            <div className="p-5 bg-white/95 backdrop-blur-sm border-t border-gray-100">
-              <div className="flex justify-between items-center">
-                <div className="min-w-0 flex-1 mr-4">
-                  <h2 className="text-lg font-black text-gray-900 truncate">{lesson.title}</h2>
-                  <div className="flex gap-3 mt-1 text-xs font-bold uppercase tracking-widest text-gray-400">
-                    <span className="text-primary">{lesson.subjects?.title}</span>
-                    <span>•</span>
-                    <span>{lesson.grade_level}</span>
-                    {lesson.profiles?.full_name && (
+            {/* Bottom area - Scrollable to fit more info if needed */}
+            <ScrollArea className="h-48 md:h-64 bg-white/95 backdrop-blur-sm border-t border-gray-100">
+              <div className="p-5">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="min-w-0 flex-1 mr-4">
+                    <h2 className="text-xl font-black text-gray-900 leading-tight">{lesson.title}</h2>
+                    <div className="flex gap-3 mt-1 text-xs font-bold uppercase tracking-widest text-gray-400">
+                      <span className="text-primary">{lesson.subjects?.title}</span>
+                      <span>•</span>
+                      <span>{lesson.grade_level}</span>
+                      {lesson.profiles?.full_name && (
+                        <>
+                          <span>•</span>
+                          <span className="text-gray-500 normal-case tracking-normal">{lesson.profiles.full_name}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    {isAuthenticated ? (
                       <>
-                        <span>•</span>
-                        <span className="text-gray-500 normal-case tracking-normal">{lesson.profiles.full_name}</span>
+                        <Button 
+                          variant={isBookmarked ? "default" : "outline"}
+                          className="rounded-xl gap-2 font-bold"
+                          onClick={toggleBookmark}
+                        >
+                          <Bookmark size={18} className={isBookmarked ? "fill-white" : ""} />
+                          {isBookmarked ? 'Đã lưu' : 'Lưu lại'}
+                        </Button>
+                        <Button className="rounded-xl gap-2 font-bold" onClick={() => window.open(lesson.file_url, '_blank')}>
+                          <Download size={18} /> Tải về
+                        </Button>
                       </>
+                    ) : (
+                      <Button variant="outline" className="rounded-xl font-bold cursor-not-allowed opacity-50" disabled>
+                        Đăng nhập để Tải & Lưu
+                      </Button>
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
-                  {isAuthenticated ? (
-                    <>
-                      <Button 
-                        variant={isBookmarked ? "default" : "outline"}
-                        className="rounded-xl gap-2 font-bold"
-                        onClick={toggleBookmark}
-                      >
-                        <Bookmark size={18} className={isBookmarked ? "fill-white" : ""} />
-                        {isBookmarked ? 'Đã lưu' : 'Lưu lại'}
+
+                {/* Phần Thống kê Đánh giá kiểu Shopee */}
+                <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100">
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 mb-6">Đánh giá tài liệu</h3>
+                  <div className="flex flex-col md:flex-row gap-8 items-start md:items-center">
+                    {/* Điểm trung bình */}
+                    <div className="flex flex-col items-center justify-center bg-white p-4 rounded-xl shadow-sm border border-orange-100 min-w-[140px]">
+                      <div className="text-4xl font-black text-orange-500">{ratingStats.avg} <span className="text-sm text-gray-400 font-medium">trên 5</span></div>
+                      <div className="flex gap-0.5 mt-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star 
+                            key={star} 
+                            size={16} 
+                            className={cn(
+                              star <= Math.round(ratingStats.avg) 
+                              ? "fill-orange-400 text-orange-400" 
+                              : "text-gray-200"
+                            )} 
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Bộ lọc/Thống kê */}
+                    <div className="flex flex-wrap gap-2 flex-1">
+                      <Button variant="outline" size="sm" className="rounded-lg bg-orange-50 border-orange-200 text-orange-600 hover:bg-orange-100 font-bold px-4">
+                        Tất Cả ({ratingStats.total})
                       </Button>
-                      <Button className="rounded-xl gap-2 font-bold" onClick={() => window.open(lesson.file_url, '_blank')}>
-                        <Download size={18} /> Tải về
-                      </Button>
-                    </>
-                  ) : (
-                    <Button variant="outline" className="rounded-xl font-bold cursor-not-allowed opacity-50" disabled>
-                      Đăng nhập để Tải & Lưu
-                    </Button>
-                  )}
+                      {ratingStats.counts.map((count, idx) => (
+                        <Button key={idx} variant="outline" size="sm" className="rounded-lg bg-white border-gray-100 text-gray-500 hover:bg-gray-50 font-medium px-4">
+                          {5 - idx} Sao ({count})
+                        </Button>
+                      ))}
+                    </div>
+
+                    {/* Nút Đánh giá của tôi */}
+                    <div className="flex flex-col gap-2 items-center md:items-end ml-auto">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Đánh giá của bạn</span>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button 
+                            key={star} 
+                            onClick={() => rateLesson(star)}
+                            disabled={!isAuthenticated}
+                            className={cn(
+                              "transition-all duration-200 hover:scale-125",
+                              !isAuthenticated && "opacity-30 cursor-not-allowed"
+                            )}
+                          >
+                            <Star 
+                              size={24} 
+                              className={cn(
+                                star <= (userRating || 0) 
+                                ? "fill-orange-400 text-orange-400" 
+                                : "text-gray-200 hover:text-orange-200"
+                              )} 
+                            />
+                          </button>
+                        ))}
+                      </div>
+                      {userRating && (
+                        <span className="text-[10px] text-green-500 font-bold italic animate-in fade-in slide-in-from-bottom-1">
+                          Cảm ơn bạn đã đánh giá!
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            </ScrollArea>
           </div>
 
-          {/* Right Side: Comments */}
-          <div className="flex-1 flex flex-col bg-white border-l border-gray-50">
-            <div className="p-4 border-b border-gray-50 flex items-center gap-2">
-              <MessageSquare size={18} className="text-primary" />
-              <h3 className="font-bold text-sm uppercase tracking-widest">Trao đổi ({comments.length})</h3>
+          {/* Right Side: Comments - Thu gọn được */}
+          <div className={cn(
+            "flex flex-col bg-white border-l border-gray-50 transition-all duration-300 overflow-hidden",
+            isChatOpen ? "w-[350px] opacity-100 visible" : "w-0 opacity-0 invisible"
+          )}>
+            <div className="p-4 border-b border-gray-50 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <MessageSquare size={18} className="text-primary" />
+                <h3 className="font-bold text-sm uppercase tracking-widest">Trao đổi ({comments.length})</h3>
+              </div>
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="h-8 w-8 rounded-full text-gray-400 hover:text-gray-600"
+                onClick={() => setIsChatOpen(false)}
+              >
+                <X size={18} />
+              </Button>
             </div>
             
             <ScrollArea className="flex-1 p-4">
