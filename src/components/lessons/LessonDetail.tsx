@@ -271,106 +271,73 @@ export default function LessonDetail({ lesson, isOpen, onClose }: LessonDetailPr
                 <div className="flex justify-between items-start mb-6">
                   <div className="min-w-0 flex-1 mr-4">
                     <h2 className="text-xl font-black text-gray-900 leading-tight">{lesson.title}</h2>
-                    <div className="flex gap-3 mt-1 text-xs font-bold uppercase tracking-widest text-gray-400">
-                      <span className="text-primary">{lesson.subjects?.title}</span>
-                      <span>•</span>
-                      <span>{lesson.grade_level}</span>
+                    <div className="flex items-center gap-3 mt-1 font-bold uppercase tracking-widest">
+                      <span className="text-xs text-primary">{lesson.subjects?.title}</span>
+                      <span className="text-gray-300">•</span>
+                      <span className="text-xs text-gray-400">{lesson.grade_level}</span>
                       {lesson.profiles?.full_name && (
                         <>
-                          <span>•</span>
-                          <span className="text-gray-500 normal-case tracking-normal">{lesson.profiles.full_name}</span>
+                          <span className="text-gray-300">•</span>
+                          <span className="text-xs text-gray-500 normal-case tracking-normal">{lesson.profiles.full_name}</span>
                         </>
                       )}
+                      
+                      {/* Điểm trung bình nhỏ gọn */}
+                      <span className="text-gray-300 ml-1">•</span>
+                      <div className="flex items-center gap-1 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
+                        <Star size={10} className="fill-orange-400 text-orange-400" />
+                        <span className="text-[10px] text-orange-600 font-bold">{ratingStats.avg} ({ratingStats.total})</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-4 flex-shrink-0">
                     {isAuthenticated ? (
                       <>
+                        {/* Đánh giá của bạn - Thu gọn kế bên nút Lưu */}
+                        <div className="flex flex-col items-center gap-1 mr-2 px-3 border-r border-gray-100">
+                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Đánh giá của bạn</span>
+                          <div className="flex gap-0.5">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button 
+                                key={star} 
+                                onClick={() => rateLesson(star)}
+                                className="transition-all hover:scale-125"
+                              >
+                                <Star 
+                                  size={16} 
+                                  className={cn(
+                                    star <= (userRating || 0) 
+                                    ? "fill-orange-400 text-orange-400" 
+                                    : "text-gray-200 hover:text-orange-200"
+                                  )} 
+                                />
+                              </button>
+                            ))}
+                          </div>
+                          {userRating && (
+                            <span className="text-[8px] text-green-500 font-bold italic line-clamp-1">
+                              Đã đánh giá!
+                            </span>
+                          )}
+                        </div>
+
                         <Button 
                           variant={isBookmarked ? "default" : "outline"}
-                          className="rounded-xl gap-2 font-bold"
+                          className="rounded-xl gap-2 font-bold h-11"
                           onClick={toggleBookmark}
                         >
                           <Bookmark size={18} className={isBookmarked ? "fill-white" : ""} />
                           {isBookmarked ? 'Đã lưu' : 'Lưu lại'}
                         </Button>
-                        <Button className="rounded-xl gap-2 font-bold" onClick={() => window.open(lesson.file_url, '_blank')}>
+                        <Button className="rounded-xl gap-2 font-bold h-11" onClick={() => window.open(lesson.file_url, '_blank')}>
                           <Download size={18} /> Tải về
                         </Button>
                       </>
                     ) : (
                       <Button variant="outline" className="rounded-xl font-bold cursor-not-allowed opacity-50" disabled>
-                        Đăng nhập để Tải & Lưu
+                        Đăng nhập để Tải & Đánh giá
                       </Button>
                     )}
-                  </div>
-                </div>
-
-                {/* Phần Thống kê Đánh giá kiểu Shopee */}
-                <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100">
-                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 mb-6">Đánh giá tài liệu</h3>
-                  <div className="flex flex-col md:flex-row gap-8 items-start md:items-center">
-                    {/* Điểm trung bình */}
-                    <div className="flex flex-col items-center justify-center bg-white p-4 rounded-xl shadow-sm border border-orange-100 min-w-[140px]">
-                      <div className="text-4xl font-black text-orange-500">{ratingStats.avg} <span className="text-sm text-gray-400 font-medium">trên 5</span></div>
-                      <div className="flex gap-0.5 mt-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star 
-                            key={star} 
-                            size={16} 
-                            className={cn(
-                              star <= Math.round(ratingStats.avg) 
-                              ? "fill-orange-400 text-orange-400" 
-                              : "text-gray-200"
-                            )} 
-                          />
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Bộ lọc/Thống kê */}
-                    <div className="flex flex-wrap gap-2 flex-1">
-                      <Button variant="outline" size="sm" className="rounded-lg bg-orange-50 border-orange-200 text-orange-600 hover:bg-orange-100 font-bold px-4">
-                        Tất Cả ({ratingStats.total})
-                      </Button>
-                      {ratingStats.counts.map((count, idx) => (
-                        <Button key={idx} variant="outline" size="sm" className="rounded-lg bg-white border-gray-100 text-gray-500 hover:bg-gray-50 font-medium px-4">
-                          {5 - idx} Sao ({count})
-                        </Button>
-                      ))}
-                    </div>
-
-                    {/* Nút Đánh giá của tôi */}
-                    <div className="flex flex-col gap-2 items-center md:items-end ml-auto">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Đánh giá của bạn</span>
-                      <div className="flex gap-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button 
-                            key={star} 
-                            onClick={() => rateLesson(star)}
-                            disabled={!isAuthenticated}
-                            className={cn(
-                              "transition-all duration-200 hover:scale-125",
-                              !isAuthenticated && "opacity-30 cursor-not-allowed"
-                            )}
-                          >
-                            <Star 
-                              size={24} 
-                              className={cn(
-                                star <= (userRating || 0) 
-                                ? "fill-orange-400 text-orange-400" 
-                                : "text-gray-200 hover:text-orange-200"
-                              )} 
-                            />
-                          </button>
-                        ))}
-                      </div>
-                      {userRating && (
-                        <span className="text-[10px] text-green-500 font-bold italic animate-in fade-in slide-in-from-bottom-1">
-                          Cảm ơn bạn đã đánh giá!
-                        </span>
-                      )}
-                    </div>
                   </div>
                 </div>
               </div>
