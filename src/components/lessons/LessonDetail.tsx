@@ -349,19 +349,20 @@ export default function LessonDetail({ lesson, isOpen, onClose }: LessonDetailPr
             "flex flex-col bg-white border-l border-gray-50 transition-all duration-300 overflow-hidden",
             isChatOpen ? "w-[350px] opacity-100 visible" : "w-0 opacity-0 invisible"
           )}>
-            <div className="p-4 border-b border-gray-50 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <MessageSquare size={18} className="text-primary" />
-                <h3 className="font-bold text-sm uppercase tracking-widest">Trao đổi ({comments.length})</h3>
-              </div>
+            <div className="p-4 border-b border-gray-50 flex items-center gap-2">
               <Button 
                 size="icon" 
                 variant="ghost" 
-                className="h-8 w-8 rounded-full text-gray-400 hover:text-gray-600"
+                className="h-8 w-8 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100"
                 onClick={() => setIsChatOpen(false)}
+                title="Thu gọn trao đổi"
               >
-                <X size={18} />
+                <ChevronRight size={18} />
               </Button>
+              <div className="flex items-center gap-2 flex-1">
+                <MessageSquare size={18} className="text-primary" />
+                <h3 className="font-bold text-sm uppercase tracking-widest">Trao đổi ({comments.length})</h3>
+              </div>
             </div>
             
             <ScrollArea className="flex-1 p-4">
